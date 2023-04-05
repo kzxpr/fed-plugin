@@ -220,11 +220,12 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
 
     // VERIFY BY SIGNATURE
     var publicKey = "";
-    const account = await knex("apaccounts").where("uri", "=", req.body.actor).select("pubkey").first();
+    //const account = await knex("apaccounts").where("uri", "=", req.body.actor).select("pubkey").first();
+    const account = await lookupAccountByURI(req.body.actor)
     if(account){
         publicKey = account.pubkey;
     }else{
-        console.log("Account not found!!!!!!!")
+        console.log("External account not found - so no public key!!!!!!!")
         await endAPLog(aplog, "Account not found in DB", 404)
         res.sendStatus(404)
         return;
