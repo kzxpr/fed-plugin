@@ -20,7 +20,7 @@ const { startAPLog, endAPLog } = require("./lib/aplog");
 const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage');
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
-const { Message } = require('../models/db');
+const { Message } = require('./models/db');
 
 router.get('/:username', async function (req, res) {
     const aplog = await startAPLog(req)

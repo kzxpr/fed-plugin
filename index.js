@@ -13,9 +13,8 @@ router.use(bodyParser.json({type: 'application/activity+json'})); // support jso
 router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 /* KNEX */
-const { Tag, Account, Message } = require("./../models/db")
-const db = require("./../../knexfile")
-const knex = require("knex")(db)
+const { Tag, Account, Message, Request } = require("./models/db")
+const { raw } = require('objection');
 
 /* BASIC AUTH FOR ACTIVITY PUB */
 basicAuth = require('express-basic-auth');
@@ -47,7 +46,7 @@ router.use("/tester", tester_routes);
 const { pageLogs, logItem } = require("./pages")
 
 router.get("/logs", async(req, res) => {
-    await knex("aprequests").where("timestamp", ">", knex.raw("now() - interval 72 hour")).orderBy("timestamp", "desc")
+    await Request.query().where("timestamp", ">", raw("now() - interval 72 hour")).orderBy("timestamp", "desc")
     .then((logs) => {
         res.send(pageLogs(logs))
     })
@@ -58,7 +57,7 @@ router.get("/logs", async(req, res) => {
 
 router.get("/logs/:logid", async(req, res) => {
     const { logid } = req.params;
-    await knex("aprequests").where("id", "=", logid).first()
+    await Request.query().where("id", "=", logid).first()
     .then((log) => {
         res.send(logItem(log))
     })

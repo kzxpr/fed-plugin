@@ -1,4 +1,4 @@
-const { prettyJSON } = require("../../../funcs")
+const { prettyJSON, prettydatetime } = require("../../../funcs")
 
 function pageLogs(logs){
     var body = `<table style="font-size: 10pt;">
@@ -19,7 +19,7 @@ function pageLogs(logs){
             <td>`+log.method+`</td>
             <td>`+log.url+`</td>
             <td>`+log.ip+`</td>
-            <td>`+log.timestamp+`</td>
+            <td>`+prettydatetime(log.timestamp)+`</td>
             <td>`+log.statuscode+`</td>
             <td>`;
         if(log.body == "{}"){
@@ -63,7 +63,7 @@ function logItem(log){
             </tr>
             <tr>
                 <td>timestamp</td>
-                <td>`+log.timestamp+`</td>
+                <td>`+prettydatetime(log.timestamp)+`</td>
             </tr>
             <tr>
                 <td>statuscode</td>
