@@ -11,6 +11,24 @@ class Attachment extends Model {
 	}
 }
 
+class Activity extends Model {
+	static get tableName() {
+		return 'apactivities';
+	}
+}
+
+class Addressee extends Model {
+	static get tableName() {
+		return 'apaddressee';
+	}
+}
+
+class Vote extends Model {
+	static get tableName() {
+		return 'apoptions_votes';
+	}
+}
+
 class Tag extends Model {
 	static get tableName() {
 		return 'aptags';
@@ -71,6 +89,12 @@ class Announce extends Model {
 class Option extends Model {
 	static get tableName() {
 		return 'apoptions';
+	}
+}
+
+class Follower extends Model {
+	static get tableName() {
+		return 'apfollowers';
 	}
 }
 
@@ -203,4 +227,4 @@ class Request extends Model {
 	}
 }
 
-module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request }
+module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee }

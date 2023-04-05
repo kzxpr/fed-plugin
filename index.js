@@ -12,7 +12,7 @@ var bodyParser = require('body-parser')
 router.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
 router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
-/* KNEX */
+/* MODELS */
 const { Tag, Account, Message, Request } = require("./models/db")
 const { raw } = require('objection');
 

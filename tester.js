@@ -1,8 +1,5 @@
 const express = require('express'),
       router = express.Router();
-
-const db = require("./../../knexfile")
-const knex = require("knex")(db)
       
 const { createActor } = require("./lib/createActor")
 const { wrapInCreate, wrapInUpdate, wrapInDelete, wrapInFlag, wrapInUndo, wrapInAnnounce, wrapInFollow, wrapInLike } = require("./lib/wrappers")
@@ -10,6 +7,10 @@ const { signAndSend } = require("./lib/signAndSend")
 const { makeArticle, makeEvent, makeNote, makeQuestion, makeImage, handleAddress } = require("./lib/makeMessage")
 const { findInbox } = require("./lib/addAccount")
 const { addMessage } = require("./lib/addMessage")
+
+const { Account, Message, Follower } = require("./models/db")
+
+const { fn } = require('objection');
 
 const tester_root = "/ap/admin/tester";
 
@@ -114,9 +115,9 @@ router.get("/", async(req, res) => {
         console.log("createActor:", username, domain)
         await createActor(username, domain)
             .then(async (account) => {
-                await knex("apaccounts").insert({
+                await Account.query().insert({
                     ...account,
-                    createdAt: knex.fn.now()
+                    createdAt: fn.now()
                 })
                 .then(() => {
                     msg = "Created actor: "+username+"@"+domain;
@@ -138,7 +139,7 @@ router.get("/", async(req, res) => {
         body += "<i>"+msg+"</i><br>"
     }
     body += "<ul>"
-    await knex("apaccounts").where("handle", "like", "%@"+domain).then((users) => {
+    await Account.query().where("handle", "like", "%@"+domain).then((users) => {
         for(let user of users){
             let username = user.username
             body += "<li><a href='"+tester_root+"/"+username+"'>"+username+"</a></li>"
@@ -180,7 +181,7 @@ router.route("/:username/edit/account")
         if(req.body){
             // THIS IS POST
             const { displayname, summary, icon } = req.body;
-            const upd = await knex("apaccounts").update({ displayname, summary, icon }).where("uri", "=", account_uri)
+            const upd = await Account.query().update({ displayname, summary, icon }).where("uri", "=", account_uri)
             .then((d) => {
                 res.locals.msg = "SUCCESS - <a href='"+tester_root+"/"+username+"/Update/Id'>send notification!</a>"
             })
@@ -196,7 +197,7 @@ router.route("/:username/edit/account")
         const { username } = req.params;
         const account_uri = "https://"+domain+"/u/"+username;
 
-        await knex("apaccounts").where("uri", "=", account_uri).first()
+        await Account.query().where("uri", "=", account_uri).first()
         .then((account) => {
             var body = header();
             body += "Hi "+username+".<br>";
@@ -227,7 +228,7 @@ router.route("/:username/edit/messages")
         if(req.body){
             // THIS IS POST
             const { displayname, summary, icon } = req.body;
-            const upd = await knex("apaccounts").update({ displayname, summary, icon }).where("uri", "=", account_uri)
+            const upd = await Account.query().update({ displayname, summary, icon }).where("uri", "=", account_uri)
             .then((d) => {
                 res.locals.msg = "SUCCESS - <a href='"+tester_root+"/"+username+"/Update/Id'>send notification!</a>"
             })
@@ -251,7 +252,7 @@ router.route("/:username/edit/messages")
 
         body += "<table>"
         body += "<tr><td></tr>"
-        await knex("apmessages").where("attributedTo", "=", account_uri)
+        await Message.query().where("attributedTo", "=", account_uri)
         .orderBy("publishedAt", "desc")
         .then((messages) => {  
             for(let message of messages){
@@ -570,7 +571,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     
     // TEMPORARY:
     const account_uri = "https://"+domain+"/u/"+username;
-    const account = await knex("apaccounts").where("uri", "=", account_uri).select("apikey").first();
+    const account = await Account.query().where("uri", "=", account_uri).select("apikey").first();
     const apikey = account.apikey;
     
     const { to_field, cc_field } = handleAddress({ to, cc, public, followshare, username, domain })
@@ -585,13 +586,13 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const uri = "https://"+domain+"/u/"+username;
     const ref_url = uri+"/statuses/"+guid;
     const wrapped = wrap(activity, obj, { username, domain, ref_url, to, cc });
-    console.log("WRAP", wrapped)
+    
     body += prettyTest(wrapped)
 
     var recipients = new Array();
     for(let r of recipient_list){
         if(r == uri+"/followers"){
-            const followers = await knex("apfollowers").where("username", "=", uri).select("follower")
+            const followers = await Follower.query().where("username", "=", uri).select("follower")
                 .then((users) => {
                     return users.map((user) => {
                         return user.follower;

@@ -2,8 +2,6 @@
 const express = require('express');
 const router = express.Router();
 
-const db = require("./../../knexfile")
-const knex = require("knex")(db)
 const clc = require('cli-color');
 
 const { loadActorByUsername } = require("./lib/loadActorByUsername")
@@ -20,7 +18,7 @@ const { startAPLog, endAPLog } = require("./lib/aplog");
 const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage');
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
-const { Message } = require('./models/db');
+const { Message, Account } = require('./models/db');
 
 router.get('/:username', async function (req, res) {
     const aplog = await startAPLog(req)
@@ -43,12 +41,11 @@ router.get('/:username', async function (req, res) {
 });
 
 router.get('/:username/followers', async function (req, res) {
-    console.log("lol")
     const aplog = await startAPLog(req)
     let username = req.params.username;
     let domain = req.app.get('domain');
 
-    const uri = await knex("apaccounts").where("handle", "=", username+"@"+domain).first()
+    const uri = await Account.query().where("handle", "=", username+"@"+domain).first()
     .then((account) => {
         return account.uri;
     })
@@ -78,7 +75,7 @@ router.get('/:username/following', async function (req, res) {
     let domain = req.app.get('domain');
     const page = req.query.page ? req.query.page : 0;
     
-    const uri = await knex("apaccounts").where("handle", "=", username+"@"+domain).first()
+    const uri = await Account.query().where("handle", "=", username+"@"+domain).first()
         .then((account) => {
             return account.uri;
         })
@@ -107,7 +104,7 @@ router.get(["/:username/outbox"], async(req, res) => {
     const { page } = req.query;
     const domain = req.app.get('domain');
     
-    const user_uri = await knex("apaccounts").where("handle", "=", username+"@"+domain).select("uri").first()
+    const user_uri = await Account.query().where("handle", "=", username+"@"+domain).select("uri").first()
         .then((d) => { return d.uri })
         .catch((e) => { res.sendStatus(500)})
     const messages = await Message.query().where("attributedTo", user_uri)
@@ -133,7 +130,7 @@ router.get(["/:username/collections/featured"], async(req, res) => {
     const { page } = req.query;
     const domain = req.app.get('domain');
     const context = new Array("https://www.w3.org/ns/activitystreams")
-    const user_uri = await knex("apaccounts").where("handle", "=", username+"@"+domain).select("uri").first()
+    const user_uri = await Account.query().where("handle", "=", username+"@"+domain).select("uri").first()
         .then((d) => { return d.uri })
         .catch((e) => { res.sendStatus(500)})
     const messages = await Message.query().where("attributedTo", user_uri).andWhere("pinned", "=", 1)
@@ -164,7 +161,8 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
     const { username, messageid } = req.params;
     const domain = req.app.get('domain');
     const uri = "https://"+domain+"/u/"+username+"/statuses/"+messageid;
-    const messages = await knex("apmessages").where("uri", "=", uri).first()
+    console.log(uri)
+    const messages = await Message.query().where("uri", "=", uri).first()
         .then(async (message) => {
             //console.log("M", uri, message)
             if(message){
@@ -220,7 +218,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
 
     // VERIFY BY SIGNATURE
     var publicKey = "";
-    //const account = await knex("apaccounts").where("uri", "=", req.body.actor).select("pubkey").first();
+    //const account = await Account.query().where("uri", "=", req.body.actor).select("pubkey").first();
     const account = await lookupAccountByURI(req.body.actor)
     if(account){
         publicKey = account.pubkey;
@@ -244,7 +242,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         if(proceed){
             // PROCEEDThis is the content of the message <i>including</i> HTML
             console.log("PROCEEDING....")
-            const sender = await knex("apaccounts").where("uri", "=", req.body.actor)
+            const sender = await Account.query().where("uri", "=", req.body.actor)
                 .then((rows) => {
                     if(rows.length==1){
                         return rows[0]
@@ -284,7 +282,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             }else if(reqtype == 'Follow'){
                 if(typeof req.body.object === 'string'){
                     const local_uri = req.body.object;
-                    await knex("apaccounts").where("uri", "=", local_uri).first()
+                    await Account.query().where("uri", "=", local_uri).first()
                     .then(async(account) => {
                         if(account){
                             const follower_uri = req.body.actor;
@@ -320,7 +318,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             }else if(reqtype == 'Like'){
                 if(typeof req.body.object === 'string'){
                     const message_uri = req.body.object;
-                    await knex("apmessages").where("uri", "=", message_uri).first()
+                    await Message.query().where("uri", "=", message_uri).first()
                     .then(async(message) => {
                         console.log("Message is here!")
                         if(message){
@@ -347,7 +345,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             }else if(reqtype == 'Announce'){
                 if(typeof req.body.object === 'string'){
                     const message_uri = req.body.object;
-                    await knex("apmessages").where("uri", "=", message_uri).first()
+                    await Message.query().where("uri", "=", message_uri).first()
                     .then(async(message) => {
                         if(message){
                             const follower_uri = req.body.actor;
