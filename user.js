@@ -161,7 +161,6 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
     const { username, messageid } = req.params;
     const domain = req.app.get('domain');
     const uri = "https://"+domain+"/u/"+username+"/statuses/"+messageid;
-    console.log(uri)
     const messages = await Message.query().where("uri", "=", uri).first()
         .then(async (message) => {
             //console.log("M", uri, message)
@@ -190,58 +189,60 @@ router.get("/:username/inbox", async(req, res) => {
 })
 
 router.post(['/inbox', '/:username/inbox'], async function (req, res) {
-    const aplog = await startAPLog(req)
     const username = req.params.username || "!shared!";
     let domain = req.app.get('domain');
-    console.log("POST", clc.blue("/inbox"), "to "+username+" ()", req.body)
-    console.log(req.body.actor)
+    const aplog = await startAPLog(req)
+    
+    //console.log(req.body.actor)
     const myURL = new URL(req.body.actor);
     let targetDomain = myURL.hostname;
     const reqtype = req.body.type;
 
     console.log("POST", clc.blue("/inbox"), "to "+username+" ("+reqtype+") from "+req.body.actor)
 
-    /* VERIFY DIGEST */
-    //const body_without_signature = req.body;
-    //delete body_without_signature.signature;
-    //delete body_without_signature.object.replies;
-    //console.log(body_without_signature)
-    const digest = makeDigest(req.body);
-    if(digest!=req.headers.digest){
-        console.log("DIGEST DOESN'T MATCH");//, digest, req.headers)
-        /*await endAPLog(aplog, "Digest invalid", 401)
-        res.sendStatus(401)
-        return;*/
-    }else{
-        console.log("VALID DIGEST");//, digest, req.headers, JSON.stringify(req.body))
-    }
+    try {
+        // VALIDATE DIGEST
+        const digest = makeDigest(req.body);
+        if(digest!=req.headers.digest){
+            console.log("DIGEST DOESN'T MATCH");//, digest, req.headers)
+            throw new Error("Digest doesn't match")
+        }
 
-    // VERIFY BY SIGNATURE
-    var publicKey = "";
-    //const account = await Account.query().where("uri", "=", req.body.actor).select("pubkey").first();
-    const account = await lookupAccountByURI(req.body.actor)
-    if(account){
-        publicKey = account.pubkey;
-    }else{
-        console.log("External account not found - so no public key!!!!!!!")
-        await endAPLog(aplog, "Account not found in DB", 404)
-        res.sendStatus(404)
+        // VERIFY BY SIGNATURE
+        var publicKey;
+        const account = await lookupAccountByURI(req.body.actor)
+        
+        if(account){
+            publicKey = account.pubkey;
+        }else{
+            throw new Error("External account not found - so no public key!!!!!!!")
+        }
+
+        const verified = verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, req.body, publicKey);
+        if(!verified){
+            throw new Error("Signature invalid")
+        }
+    } catch(e) {
+        console.log("ERROR doing lookupAccountByURI", e)
+        res.sendStatus(400) // bad request!
         return;
     }
+
+    // CHECK IF ACTIVITY IS ALREADY REGISTERED - IF NOT, ADD ACTIVITY
+    try{
+        const proceed = await addActivity(req.body)
+        if(!proceed){
+            throw new Error("Activity already in DB")
+        }
+    } catch(e) {
+        // IGNORE!!!!!
+        console.log(e)
+        await endAPLog(aplog, e)
+        res.sendStatus(200)
+    }
+
     
-    const verified = verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, req.body, publicKey);
-    if(!verified){
-        await endAPLog(aplog, "Signature invalid", 401)
-        res.sendStatus(401)
-        return;
-    }
-
-    // CHECK TO ADD ACTIVITY
-    await addActivity(req.body)
-    .then(async(proceed) => {
-        if(proceed){
-            // PROCEEDThis is the content of the message <i>including</i> HTML
-            console.log("PROCEEDING....")
+    
             const sender = await Account.query().where("uri", "=", req.body.actor)
                 .then((rows) => {
                     if(rows.length==1){
@@ -257,7 +258,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
                 if(objtype==="Note"){
                     await addMessage(req.body.object)
                     .then((d) => {
-                        console.log("I created a note saying",req.body.object.content)
+                        console.log("I created a note saying",req.body.object)
                     })
                     .catch((e) => {
                         console.error("ERROR in /inbox", e)
@@ -431,6 +432,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
                             res.sendStatus(200)
                         })
                         .catch(async(e) => {
+                            console.log("PROBLEM in removeAccount", e)
                             await endAPLog(aplog, e, 500)
                             res.sendStatus(500)
                         })
@@ -523,17 +525,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
                 await endAPLog(aplog, "REQ type is not recognized...", 400)
                 res.sendStatus(400)
             }
-        }else{
-            // IGNORE!!!!!
-            console.log("Activity already in DB")
-            await endAPLog(aplog, "Activity already in DB")
-            res.sendStatus(200)
-        }
-    })
-    .catch((e) => {
-        console.warn("ERROR in addActivity", e)
-        res.sendStatus(500)
-    })
+    
 });
 
 router.get("*", async(req, res) => {

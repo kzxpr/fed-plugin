@@ -463,7 +463,6 @@ async function makeObject(object, params, body){
         body += attachment_field.body + tags_field.body;
         hidden += attachment_field.hidden + tags_field.hidden;
         obj = await makeQuestion(username, domain, manual_guid, { published, content, tags, to, cc, sensitive, questiontype, options, endTime, closed, public, followshare, n_attachs, mediaType, href })
-        console.log("UD", obj)
     }else{
         body += "<tr><td>Content</td><td><input type='text' name='content' value='"+content+"'></td></tr>"
         hidden += "<input type='hidden' name='content' value='"+content+"'>";
@@ -614,7 +613,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     if(activity == "Create" && typeof obj === 'object'){
         await addMessage(obj)
         .then(async(ok) => {
-            console.log("Added message to DB")
+            //console.log("Added message to DB")
         })
         .catch((e) => {
             console.error("ERROR in addMessage")
