@@ -40,8 +40,8 @@ function asyncAuthorizer(username, password, cb) {
 /* ROUTES */
 router.use(cors({ credentials: true, origin: true }), basicUserAuth);
 
-const tester_routes = require("./tester")
-router.use("/tester", tester_routes);
+const composer_routes = require("./composer")
+router.use("/composer", composer_routes);
 
 const { pageLogs, logItem } = require("./pages")
 
