@@ -7,13 +7,15 @@ const { signAndSend } = require("./lib/signAndSend")
 const { makeArticle, makeEvent, makeNote, makeQuestion, makeImage, handleAddress } = require("./lib/makeMessage")
 const { findInbox } = require("./lib/addAccount")
 
+const clc = require("cli-color")
+
 const { Account, Message, Follower } = require("./models/db")
 
 const { fn } = require('objection');
 const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
 const { handleActivity } = require('./lib/handleActivity');
 
-const tester_root = "/ap/admin/tester";
+const composer_root = "/ap/admin/composer";
 
 function addName(options){
     const { name } = options;
@@ -142,12 +144,12 @@ router.get("/", async(req, res) => {
     await Account.query().where("handle", "like", "%@"+domain).then((users) => {
         for(let user of users){
             let username = user.username
-            body += "<li><a href='"+tester_root+"/"+username+"'>"+username+"</a></li>"
+            body += "<li><a href='"+composer_root+"/"+username+"'>"+username+"</a></li>"
         }
     })
     body += "</ul>"
     body += "<b>Create new actor</b><br>";
-    body += "<form action='"+tester_root+"/' method='get'>";
+    body += "<form action='"+composer_root+"/' method='get'>";
     body += "<input type='text' name='username' placeholder='username'>"
     body += "<input type='submit' value='Create actor'>"
     body += "</form>"
@@ -162,13 +164,13 @@ router.get("/:username", (req, res) => {
     const options = ["Create", "Update", "Undo", "Delete", "Follow", "Like", "Announce", "Flag"]
     body += "<ul>"
     for(let option of options){
-        body += "<li><a href='"+tester_root+"/"+username+"/"+option+"'>"+option+"</a></li>"
+        body += "<li><a href='"+composer_root+"/"+username+"/"+option+"'>"+option+"</a></li>"
     }
     body += "</ul>"
     body += "Additional stuff"
     body += "<ul>"
-    body += "<li><a href='"+tester_root+"/"+username+"/edit/account'>Update account</a></li>"
-    body += "<li><a href='"+tester_root+"/"+username+"/edit/messages'>Update messages</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/account'>Update account</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/messages'>Update messages</a></li>"
     body += "</ul>"
     res.send(body)
 })
@@ -183,7 +185,7 @@ router.route("/:username/edit/account")
             const { displayname, summary, icon } = req.body;
             const upd = await Account.query().update({ displayname, summary, icon }).where("uri", "=", account_uri)
             .then((d) => {
-                res.locals.msg = "SUCCESS - <a href='"+tester_root+"/"+username+"/Update/Id'>send notification!</a>"
+                res.locals.msg = "SUCCESS - <a href='"+composer_root+"/"+username+"/Update/Id'>send notification!</a>"
             })
             .catch((e) => {
                 res.locals.msg = "ERROR updating profile"
@@ -204,7 +206,7 @@ router.route("/:username/edit/account")
             if (res.locals.msg){
                 body += "<div style='border: 1px solid #000; padding: 10px; margin: 10px'>"+res.locals.msg+"</div>"
             }
-            body += "<form action='"+tester_root+"/"+username+"/edit/account' method='post'>"
+            body += "<form action='"+composer_root+"/"+username+"/edit/account' method='post'>"
             body += "<table>"
             body += "<tr><td>Display name<td><input type='text' name='displayname' value='"+account.displayname+"'><td>name displayed</tr>"
             body += "<tr><td>Summary<td><input type='text' name='summary' value='"+account.summary+"'><td>name displayed</tr>"
@@ -230,7 +232,7 @@ router.route("/:username/edit/messages")
             const { displayname, summary, icon } = req.body;
             const upd = await Account.query().update({ displayname, summary, icon }).where("uri", "=", account_uri)
             .then((d) => {
-                res.locals.msg = "SUCCESS - <a href='"+tester_root+"/"+username+"/Update/Id'>send notification!</a>"
+                res.locals.msg = "SUCCESS - <a href='"+composer_root+"/"+username+"/Update/Id'>send notification!</a>"
             })
             .catch((e) => {
                 res.locals.msg = "ERROR updating profile"
@@ -258,7 +260,7 @@ router.route("/:username/edit/messages")
             for(let message of messages){
                 body += "<tr>";
                 body += "<td>"+message.guid+"<td>"+message.uri+"<td>"+message.content+"<td>"+message.publishedAt;
-                body += "<td><a href='"+tester_root+"/"+username+"/Delete/Id?guid="+message.uri+"'>Delete</a>"
+                body += "<td><a href='"+composer_root+"/"+username+"/Delete/Id?guid="+message.uri+"'>Delete</a>"
                 body += "</tr>";
             }
             //body += "<input type='submit' value='Update'>";
@@ -282,10 +284,10 @@ router.get("/:username/:activity", (req, res) => {
     const options = ["Note", "Question", "Article", "Page", "Event", "Image", "Audio", "Video", "Id", "Object"]
     body += "<ul>"
     for(let option of options){
-        body += "<li><a href='"+tester_root+"/"+username+"/"+activity+"/"+option+"'>"+option+"</a></li>"
+        body += "<li><a href='"+composer_root+"/"+username+"/"+activity+"/"+option+"'>"+option+"</a></li>"
     }
     body += "</ul>"
-    const preview = wrap(activity, {}, { username, domain, ref_url });
+    const preview = wrap(activity, {}, { username, domain, ref_url, to: [], cc: [] });
     body += prettyTest(preview)
     res.send(body)
 })
@@ -488,7 +490,6 @@ function wrap(activity, obj, params){
     const { username, domain, ref_url, to, cc } = params;
     const actor = "https://"+domain+"/u/"+username;
     //console.log(obj, actor, domain, ref_url)
-    console.log("Doing wrap", to, cc)
     switch(activity){
         case 'Create': wrapped = wrapInCreate(obj, actor, "guid"); break;
         case 'Delete': wrapped = wrapInDelete(obj, actor, [], { to, cc }); break;
@@ -524,7 +525,6 @@ router.all("/:username/:activity/:object", async (req, res) => {
         ? true : false;
 
     /* HERE - it should check for followshare and public */
-    console.log("CHECK", req.body.pub, req.body.followshare)
     const { cc_field, to_field } = handleAddress({
         to, cc, pub, followshare, username, domain
     })
@@ -534,8 +534,8 @@ router.all("/:username/:activity/:object", async (req, res) => {
     body += "Hi "+username+"<br>So you want to "+activity+" an <b>"+object+"</b>?<br><br>";
     body += "<b>Parameters</b><br>"
 
-    hidden = "<form action='"+tester_root+"/"+username+"/"+activity+"/"+object+"/sign' method='post'>";
-    body += "<form action='"+tester_root+"/"+username+"/"+activity+"/"+object+"' method='post'>"
+    hidden = "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"/sign' method='post'>";
+    body += "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"' method='post'>"
     
     const { form_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
     body += form_append;
@@ -558,6 +558,16 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
     const to = req.body.to !== undefined ? req.body.to : "";
     const cc = req.body.cc !== undefined ? req.body.cc : "";
 
+    const pub = ((req.body.pub !== undefined) && (req.body.pub!="false"))
+        ? true : false;
+    const followshare = ((req.body.followshare !== undefined) && (req.body.followshare!="false"))
+        ? true : false;
+
+    /* HERE - it should check for followshare and public */
+    const { cc_field, to_field } = handleAddress({
+        to, cc, pub, followshare, username, domain
+    })
+
     const guid = "";
     const dd = new Date();
     const published = dd.toISOString();
@@ -565,10 +575,10 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
     const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
 
     body += "Review one last time...<br>"
-    body += "<form action='"+tester_root+"/"+username+"/"+activity+"/"+object+"/sign/send' method='post'>"
+    body += "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"/sign/send' method='post'>"
     body += hidden_append;
     const ref_url = "https://"+domain+"/u/"+username+"/statuses/"+guid;
-    const preview = wrap(activity, obj, { username, domain, ref_url, to, cc });
+    const preview = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });
     body += prettyTest(preview)
     body += "To: "+req.body.to+"<br>";
     body += "CC: "+req.body.cc+"<br>";
@@ -604,7 +614,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
 
     const uri = "https://"+domain+"/u/"+username;
     const ref_url = uri+"/statuses/"+guid;
-    const wrapped = wrap(activity, obj, { username, domain, ref_url, to, cc });
+    const wrapped = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });
     
     body += prettyTest(wrapped)
 
@@ -615,14 +625,14 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     await handleActivity(activity, wrapped)
     
     for(let recipient of recipients){
-        console.log("RECIPIENT", recipient)
+        //console.log("RECIPIENT", recipient)
         await findInbox(recipient)
         .then(async(inbox) => {
             let recipient_url = new URL(recipient);
             let targetDomain = recipient_url.hostname;
             await signAndSend(wrapped, uri, targetDomain, inbox, apikey)
                 .then((data) => {
-                    console.log("SEND NOTE RESPONSE",data)
+                    console.log(clc.green("SUCCESS:"), "SENT to ",recipient,":",data)
                     body += "To: "+recipient+" = OK<br>";
                 })
                 .catch((err) => {
@@ -637,7 +647,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
         
     }
 
-    body += "<a href='"+tester_root+"'>BACK!</a>"
+    body += "<a href='"+composer_root+"'>BACK!</a>"
     res.send(body);
 });
 
