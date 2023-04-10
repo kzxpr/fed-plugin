@@ -19,7 +19,7 @@ const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage')
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
 const { Message, Account, Activity } = require('./models/db');
-const { handleActivity } = require('./lib/handleActivity');
+const { handleActivity, unhandled } = require('./lib/handleActivity');
 
 router.get('/:username', async function (req, res) {
     const aplog = await startAPLog(req)
@@ -248,7 +248,6 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         }
     } catch(e) {
         // IGNORE!!!!!
-        console.log("No?", e)
         await endAPLog(aplog, e)
         res.sendStatus(200)
         return;
