@@ -11,6 +11,8 @@ const { addMessage } = require("./lib/addMessage")
 const { Account, Message, Follower } = require("./models/db")
 
 const { fn } = require('objection');
+const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
+const { handleActivity } = require('./lib/handleActivity');
 
 const tester_root = "/ap/admin/tester";
 
@@ -112,7 +114,6 @@ router.get("/", async(req, res) => {
     var msg = "";
     if(req.query.username){
         const username = req.query.username;
-        console.log("createActor:", username, domain)
         await createActor(username, domain)
             .then(async (account) => {
                 await Account.query().insert({
@@ -279,7 +280,7 @@ router.get("/:username/:activity", (req, res) => {
     var body = header();
     body += "Hi "+req.params.username+"<br>So you want to <b>"+req.params.activity+"</b> an activity?<br>";
     body += "Which object would you like to use?"
-    const options = ["Note", "Question", "Article", "Page", "Event", "Image", "Audio", "Video", "Id"]
+    const options = ["Note", "Question", "Article", "Page", "Event", "Image", "Audio", "Video", "Id", "Object"]
     body += "<ul>"
     for(let option of options){
         body += "<li><a href='"+tester_root+"/"+username+"/"+activity+"/"+option+"'>"+option+"</a></li>"
@@ -305,6 +306,12 @@ async function makeObject(object, params, body){
     const questiontype = body.questiontype !== undefined ? body.questiontype : "oneOf";
     const n_options = body.n_options !== undefined ? body.n_options : 2;
     const closed = body.closed !== undefined ? body.closed : "";
+
+    // object type
+    const obj_id = body.obj_id !== undefined ? body.obj_id : "";
+    const obj_type = body.obj_type !== undefined ? body.obj_type : "";
+    const obj_actor = body.obj_actor !== undefined ? body.obj_actor : "";
+    const obj_object = body.obj_object !== undefined ? body.obj_object : "";
 
     var tags = new Array();
     const found_tags = content.toLowerCase().match(/#(([a-z_]+)([\w_]+)?)/g);  
@@ -342,7 +349,7 @@ async function makeObject(object, params, body){
     
     const manual_guid = body.manual_guid != "" ? body.manual_guid : guid;
     const url = body.url !== undefined ? body.url : "https://"+domain+"/post/"+manual_guid;
-    const public = ((body.public !== undefined) && (body.public != "false"))
+    const pub = ((body.pub !== undefined) && (body.pub != "false"))
         ? true : false;
     const followshare = ((body.followshare !== undefined) && (body.followshare != "false"))
         ? true : false;
@@ -360,11 +367,11 @@ async function makeObject(object, params, body){
     body += "<tr><td>attributed:<td> "+attributedTo+"<td></tr>"
     body += "<tr><td>published:<td> "+published+"<td>(updates automatically)</tr>"
     body += "<tr><td>to:<td> <input type='text' name='to' value='"+to+"' style='width: 100%; max-width: 300px;'><td>(url - separate with space)</tr>";
-    body += "<tr><td>public:<td> <input type='checkbox' name='public' value='yes'";
-    if(public){
+    body += "<tr><td>pub:<td> <input type='checkbox' name='pub' value='yes'";
+    if(pub){
         body += "checked"
     }
-    body += "><td>(include public)</tr>";
+    body += "><td>(include pub)</tr>";
     body += "<tr><td>cc:<td> <input type='text' name='cc' value='"+cc+"' style='width: 100%; max-width: 300px;'><td>(url - separate with space)</tr>";
     body += "<tr><td>follower:<td> <input type='checkbox' name='followshare' value='yes' ";
     if(followshare){
@@ -379,7 +386,7 @@ async function makeObject(object, params, body){
     body += "><td>(message cannot be boosted)</tr>"
     
     hidden += "<input type='hidden' name='to' value='"+to+"'>";
-    hidden += "<input type='hidden' name='public' value='"+public+"'>";
+    hidden += "<input type='hidden' name='pub' value='"+pub+"'>";
     hidden += "<input type='hidden' name='cc' value='"+cc+"'>";
     hidden += "<input type='hidden' name='followshare' value='"+followshare+"'>";
     hidden += "<input type='hidden' name='inReplyTo' value='"+inReplyTo+"'>";
@@ -401,7 +408,7 @@ async function makeObject(object, params, body){
         body += content_field.body + summary_field.body + attachment_field.body + tags_field.body;
         hidden += content_field.hidden + summary_field.hidden + attachment_field.hidden + tags_field.hidden;
 
-        obj = await makeNote(username, domain, manual_guid, { published, name, n_attachs, href, mediaType, tags, content, to, cc, sensitive, url, summary, inReplyTo, public, followshare })
+        obj = await makeNote(username, domain, manual_guid, { published, name, n_attachs, href, mediaType, tags, content, to, cc, sensitive, url, summary, inReplyTo, pub, followshare })
     }else if(object=="Image"){
         const name_field = addName({name})
         const attachment_field = addAttachments({ mediaType, href, n_attachs });
@@ -409,7 +416,7 @@ async function makeObject(object, params, body){
 
         body += name_field.body + attachment_field.body + tags_field.body;
         hidden += name_field.hidden + attachment_field.hidden + tags_field.hidden;
-        obj = await makeImage(username, domain, manual_guid, { name, to, cc, tags, href, mediaType, inReplyTo, sensitive, public, followshare, href, n_attachs })
+        obj = await makeImage(username, domain, manual_guid, { name, to, cc, tags, href, mediaType, inReplyTo, sensitive, pub, followshare, href, n_attachs })
     }else if(object=="Event"){
         const name_field = addName({name})
         const attachment_field = addAttachments({ mediaType, href, n_attachs });
@@ -423,7 +430,7 @@ async function makeObject(object, params, body){
         hidden += "<input type='hidden' name='endTime' value='"+endTime+"'>";
         //hidden += "<input type='hidden' name='content' value='"+content+"'>";
         hidden += "<input type='hidden' name='summary' value='"+summary+"'>";
-        obj = await makeEvent(username, domain, manual_guid, { published, name, content, tags, to, cc, sensitive, startTime, endTime, url, summary, public, followshare, mediaType, href, n_attachs })
+        obj = await makeEvent(username, domain, manual_guid, { published, name, content, tags, to, cc, sensitive, startTime, endTime, url, summary, pub, followshare, mediaType, href, n_attachs })
     }else if(object=="Question"){
         const content_field = addContent({content})
         const attachment_field = addAttachments({ mediaType, href, n_attachs });
@@ -462,14 +469,17 @@ async function makeObject(object, params, body){
         hidden += "<input type='hidden' name='closed' value='"+closed+"'>";
         body += attachment_field.body + tags_field.body;
         hidden += attachment_field.hidden + tags_field.hidden;
-        obj = await makeQuestion(username, domain, manual_guid, { published, content, tags, to, cc, sensitive, questiontype, options, endTime, closed, public, followshare, n_attachs, mediaType, href })
-    }else{
-        body += "<tr><td>Content</td><td><input type='text' name='content' value='"+content+"'></td></tr>"
-        hidden += "<input type='hidden' name='content' value='"+content+"'>";
-        const tags_field = addTags({ tags, n_tags })
-        body += tags_field.body;
-        hidden += tags_field.hidden;
-        obj = makeArticle(username, domain, manual_guid, { published, content, name, url, tags, to, cc, sensitive, public, followshare })
+        obj = await makeQuestion(username, domain, manual_guid, { published, content, tags, to, cc, sensitive, questiontype, options, endTime, closed, pub, followshare, n_attachs, mediaType, href })
+    }else if(object=="Object"){
+        body += "<tr><td>object_id</td><td><input type='text' name='obj_id' value='"+obj_id+"'></td></tr>"
+        body += "<tr><td>object_type</td><td><input type='text' name='obj_type' value='"+obj_type+"'></td></tr>"
+        body += "<tr><td>object_actor</td><td><input type='text' name='obj_actor' value='"+obj_actor+"'></td></tr>"
+        body += "<tr><td>object_object</td><td><input type='text' name='obj_object' value='"+obj_object+"'></td></tr>"
+        hidden += "<input type='hidden' name='obj_id' value='"+obj_id+"'>";
+        hidden += "<input type='hidden' name='obj_type' value='"+obj_type+"'>";
+        hidden += "<input type='hidden' name='obj_actor' value='"+obj_actor+"'>";
+        hidden += "<input type='hidden' name='obj_object' value='"+obj_object+"'>";
+        obj = { id: obj_id, type: obj_type, actor: obj_actor, object: obj_object }
     }
     body += "</table>"
     return { form_append: body, hidden_append: hidden, obj }
@@ -478,7 +488,7 @@ async function makeObject(object, params, body){
 function wrap(activity, obj, params){
     const { username, domain, ref_url, to, cc } = params;
     const actor = "https://"+domain+"/u/"+username;
-    console.log(obj, actor, domain, ref_url)
+    //console.log(obj, actor, domain, ref_url)
     switch(activity){
         case 'Create': wrapped = wrapInCreate(obj, actor, "guid"); break;
         case 'Delete': wrapped = wrapInDelete(obj, actor, domain, [], { to, cc }); break;
@@ -563,7 +573,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
 
     const to = req.body.to !== undefined ? req.body.to : "";
     const cc = req.body.cc !== undefined ? req.body.cc : "";
-    const public = ((req.body.public !== undefined) && (req.body.public!="false"))
+    const pub = ((req.body.pub !== undefined) && (req.body.pub!="false"))
         ? true : false;
     const followshare = ((req.body.followshare !== undefined) && (req.body.followshare!="false"))
         ? true : false;
@@ -573,10 +583,10 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const account = await Account.query().where("uri", "=", account_uri).select("apikey").first();
     const apikey = account.apikey;
     
-    const { to_field, cc_field } = handleAddress({ to, cc, public, followshare, username, domain })
+    const { to_field, cc_field } = handleAddress({ to, cc, pub, followshare, username, domain })
     const recipient_list = to_field.concat(cc_field)
 
-    const guid = crypto.randomBytes(16).toString('hex');;
+    const guid = crypto.randomBytes(16).toString('hex');
     const dd = new Date();
     const published = dd.toISOString();
     var body = header();
@@ -588,29 +598,12 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     
     body += prettyTest(wrapped)
 
-    var recipients = new Array();
-    for(let r of recipient_list){
-        if(r == uri+"/followers"){
-            const followers = await Follower.query().where("username", "=", uri).select("follower")
-                .then((users) => {
-                    return users.map((user) => {
-                        return user.follower;
-                    })
-                })
-                .catch((e) => {
-                    console.error("ERROR while getting followers", uri)
-                })
-            recipients = recipients.concat(followers);
-        }else if(r != "" && r != "https://www.w3.org/ns/activitystreams#Public"){
-            recipients.push(r)
-        }
-    }
-
-    //console.log("RECIPIENTS", recipients)
-    //console.log("A", activity)
+    /* Resolve all recipients */
+    const recipients = await loadRecipientsByList(recipient_list, uri)
 
     /* ADD ACTIVITY TO DATABASE */
-    if(activity == "Create" && typeof obj === 'object'){
+    await handleActivity(activity, wrapped)
+    /*if(activity == "Create" && typeof obj === 'object'){
         await addMessage(obj)
         .then(async(ok) => {
             //console.log("Added message to DB")
@@ -619,9 +612,10 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
             console.error("ERROR in addMessage")
             res.sendStatus(500)
         })
-    }
+    }*/
     
     for(let recipient of recipients){
+        console.log("RECIPIENT", recipient)
         await findInbox(recipient)
         .then(async(inbox) => {
             let recipient_url = new URL(recipient);
