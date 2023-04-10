@@ -18,7 +18,7 @@ const { startAPLog, endAPLog } = require("./lib/aplog");
 const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage');
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
-const { Message, Account } = require('./models/db');
+const { Message, Account, Activity } = require('./models/db');
 const { handleActivity } = require('./lib/handleActivity');
 
 router.get('/:username', async function (req, res) {
@@ -33,7 +33,7 @@ router.get('/:username', async function (req, res) {
     })
     .catch(async(err) => {
         await endAPLog(aplog, err.msg, err.statuscode)
-        res.status(err.statuscode).send("Error at /u/"+name+": "+err.msg)
+        res.sendStatus(err.statuscode).send("Error at /u/"+name+": "+err.msg)
     })
 });
 
@@ -51,7 +51,7 @@ router.get('/:username/followers', async function (req, res) {
     .catch(async(e) => {
         console.error(e)
         await endAPLog(aplog, "Username not found", 404)
-        return res.status(404).send('Bad request.');
+        return res.sendStatus(404);
     })
 
     // Load items and wrap
@@ -81,7 +81,7 @@ router.get('/:username/following', async function (req, res) {
     .catch(async(e) => {
         console.error(e)
         await endAPLog(aplog, "Username not found", 400)
-        return res.status(400).send('Bad request.');
+        return res.sendStatus(400);
     })
     
     // Load items and wrap
@@ -97,7 +97,7 @@ router.get('/:username/following', async function (req, res) {
 });
 
 
-router.get(["/:username/outbox"], async(req, res) => {
+router.all(["/:username/outbox"], async(req, res) => {
     const aplog = await startAPLog(req)
     const { username } = req.params;
     const { page } = req.query;
@@ -109,20 +109,29 @@ router.get(["/:username/outbox"], async(req, res) => {
         .catch((e) => { res.sendStatus(500)})
     
     // Load items
-    const messages = await Message.query().where("attributedTo", user_uri)
+    const activities = await Activity.query()
+    .where("actor", "=", user_uri)
+    .select("uri as id", "type", "createdAt as published", "object")
+    .then((activities) => {
+        const all = activities.map((a) => {
+            return { ...a, to: ["https://www.w3.org/ns/activitystreams#Public"], cc: [ user_uri + "/followers" ], actor: user_uri };
+        })
+        return all;
+    })
+    /*const messages = await Message.query().where("attributedTo", user_uri)
         .withGraphFetched("[addressees]")
         .then(async(messages) => {
             var output = new Array();
             for(let message of messages){
-                const { to, cc} = addresseesToString(message.addressees)
+                const { to, cc } = addresseesToString(message.addressees)
                 output.push(await makeMessage(message.type, username, domain, message.guid, { published: message.publishedAt, content: message.content, to, cc }))
             }
             return output;
-        })
+        })*/
     
     // Wrap
     const id = "https://"+domain+"/u/"+username+"/outbox";
-    const data = wrapInOrderedCollection(id, messages);
+    const data = wrapInOrderedCollection(id, activities);
     await endAPLog(aplog, data)
     res.json(data)
 })
@@ -199,7 +208,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
     const aplog = await startAPLog(req)
     const reqtype = req.body.type;
 
-    console.log("POST", clc.blue("/inbox"), "to "+username+" ("+reqtype+") from "+req.body.actor)
+    console.log(clc.blue("POST /inbox"), "to "+username+" ("+reqtype+") from "+req.body.actor)
 
     try {
         // VALIDATE DIGEST
@@ -224,7 +233,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             throw new Error("Signature invalid")
         }
     } catch(e) {
-        console.log("ERROR doing lookupAccountByURI", e)
+        console.log(clc.red("ERROR"), "doing lookupAccountByURI", e)
         await endAPLog(aplog, e, 400)
         res.sendStatus(400) // bad request!
         return;
@@ -242,6 +251,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         console.log("No?", e)
         await endAPLog(aplog, e)
         res.sendStatus(200)
+        return;
     }
 
     try {
@@ -254,15 +264,18 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         if(statuscode != 200){
             await endAPLog(aplog, msg, statuscode)
             res.sendStatus(statuscode);
+            return;
         }else{
             await endAPLog(aplog, msg)
             res.send(data)
+            return;
         }
         
     } catch(e) {
-        console.log("ERR", e.msg)
+        console.log(clc.red("ERROR"), e)
         const statuscode = e.statuscode || 500;
-        res.status(statuscode);
+        res.sendStatus(statuscode);
+        return;
     }    
 });
 

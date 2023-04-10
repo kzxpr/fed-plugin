@@ -6,7 +6,6 @@ const { wrapInCreate, wrapInUpdate, wrapInDelete, wrapInFlag, wrapInUndo, wrapIn
 const { signAndSend } = require("./lib/signAndSend")
 const { makeArticle, makeEvent, makeNote, makeQuestion, makeImage, handleAddress } = require("./lib/makeMessage")
 const { findInbox } = require("./lib/addAccount")
-const { addMessage } = require("./lib/addMessage")
 
 const { Account, Message, Follower } = require("./models/db")
 
@@ -489,13 +488,14 @@ function wrap(activity, obj, params){
     const { username, domain, ref_url, to, cc } = params;
     const actor = "https://"+domain+"/u/"+username;
     //console.log(obj, actor, domain, ref_url)
+    console.log("Doing wrap", to, cc)
     switch(activity){
         case 'Create': wrapped = wrapInCreate(obj, actor, "guid"); break;
-        case 'Delete': wrapped = wrapInDelete(obj, actor, domain, [], { to, cc }); break;
-        case 'Update': wrapped = wrapInUpdate(obj, actor, domain, [], ref_url); break;
+        case 'Delete': wrapped = wrapInDelete(obj, actor, [], { to, cc }); break;
+        case 'Update': wrapped = wrapInUpdate(obj, actor, [], ref_url); break;
         case 'Flag': wrapped = wrapInFlag(obj, actor, domain, [], ref_url); break;
         case 'Undo': wrapped = wrapInUndo(obj, actor, domain, [], ref_url, { to, cc }); break;
-        case 'Announce': wrapped = wrapInAnnounce(obj, actor, domain, { to, cc }, ref_url); break;
+        case 'Announce': wrapped = wrapInAnnounce(obj, actor, { to, cc }, ref_url); break;
         case 'Follow': wrapped = wrapInFollow(obj, actor, domain, [], ref_url); break;
         case 'Like': wrapped = wrapInLike(obj, actor, domain, [], ref_url); break;
     }
@@ -518,6 +518,16 @@ router.all("/:username/:activity/:object", async (req, res) => {
 
     const to = req.body.to !== undefined ? req.body.to : "";
     const cc = req.body.cc !== undefined ? req.body.cc : "";
+    const pub = ((req.body.pub !== undefined) && (req.body.pub!="false"))
+        ? true : false;
+    const followshare = ((req.body.followshare !== undefined) && (req.body.followshare!="false"))
+        ? true : false;
+
+    /* HERE - it should check for followshare and public */
+    console.log("CHECK", req.body.pub, req.body.followshare)
+    const { cc_field, to_field } = handleAddress({
+        to, cc, pub, followshare, username, domain
+    })
 
     /* BODY AND STUFF */
     var body = header();
@@ -535,7 +545,7 @@ router.all("/:username/:activity/:object", async (req, res) => {
     hidden += "<br><input type='submit' value='Go to sign and send!'>"
     hidden += "</form>"
     const ref_url = "https://"+domain+"/u/"+username+"/statuses/"+guid;
-    const preview = wrap(activity, obj, { username, domain, ref_url, to, cc });
+    const preview = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });
     body += prettyTest(preview)
     body += hidden;
     res.send(body)
@@ -603,16 +613,6 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
 
     /* ADD ACTIVITY TO DATABASE */
     await handleActivity(activity, wrapped)
-    /*if(activity == "Create" && typeof obj === 'object'){
-        await addMessage(obj)
-        .then(async(ok) => {
-            //console.log("Added message to DB")
-        })
-        .catch((e) => {
-            console.error("ERROR in addMessage")
-            res.sendStatus(500)
-        })
-    }*/
     
     for(let recipient of recipients){
         console.log("RECIPIENT", recipient)
