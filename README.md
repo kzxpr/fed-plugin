@@ -6,13 +6,15 @@ ExpressJS example
 
 **Stuff to include**
 
+    app.set('domain', <my_domain>);
+
     /* CORS */
     const cors = require('cors')
 
     /* ACTIVITY PUB ENDPOINTS */
     const ap_webfinger = require("./server/fed-plugin/webfinger")
     const ap_user = require("./server/fed-plugin/user")
-    const ap_admin_routes = require("./server/fed-plugin/index")
+    const ap_admin_routes = require("./server/fed-plugin/admin")
 
     app.use("/.well-known/webfinger/", cors(), ap_webfinger)
     app.use("/u", cors(), ap_user)

@@ -1,4 +1,4 @@
-const { prettyJSON, prettydatetime } = require("../../../funcs")
+const { prettyJSON, prettydatetime } = require("./../utils/funcs")
 
 function pageLogs(logs){
     var body = `<table style="font-size: 10pt;">
