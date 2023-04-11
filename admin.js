@@ -38,7 +38,7 @@ function asyncAuthorizer(username, password, cb) {
 }
 
 /* ROUTES */
-router.use(cors({ credentials: true, origin: true }), basicUserAuth);
+router.use(cors({ credentials: true, origin: true }));
 
 const composer_routes = require("./composer")
 router.use("/composer", composer_routes);
