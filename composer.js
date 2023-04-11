@@ -395,7 +395,6 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
 });
 
 router.post("/:username/:activity/:object/sign/send", async (req, res) => {
-    console.log("TRIGGER", req.body)
     const { username, activity, object } = req.params;
     const domain = req.app.get('domain');
 
@@ -413,7 +412,6 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     
     const { to_field, cc_field } = handleAddress({ to, cc, pub, followshare, username, domain })
     const recipient_list = to_field.concat(cc_field)
-    console.log(recipient_list)
 
     const guid = crypto.randomBytes(16).toString('hex');
     const dd = new Date();
@@ -429,7 +427,6 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
 
     /* Resolve all recipients */
     const recipients = await loadRecipientsByList(recipient_list, uri)
-    console.log("HER", wrapped, activity)
 
     /* ADD ACTIVITY TO DATABASE */
     try {
