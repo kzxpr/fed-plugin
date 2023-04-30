@@ -26,6 +26,14 @@ class Activity extends Model {
 					to: 'apmessages.uri'
 				}
 			},
+			creator: {
+				relation: Model.HasOneRelation,
+				modelClass: Account,
+				join: {
+					from: 'apactivities.actor',
+					to: 'apaccounts.uri'
+				}
+			},
 		}
 	}
 }
