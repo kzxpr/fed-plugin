@@ -78,4 +78,8 @@ function onlyUnique(value, index, array) {
     return array.indexOf(value) === index;
 }
 
-module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique }
+function date2mysql(d){
+    return new Date(d).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql }
