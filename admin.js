@@ -51,6 +51,7 @@ router.get("/logs", async(req, res) => {
         res.send(pageLogs(logs))
     })
     .catch((e) => {
+        console.log(e)
         res.sendStatus(404)
     })
 })

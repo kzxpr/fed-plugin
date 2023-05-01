@@ -8,7 +8,6 @@ const { loadActorByUsername } = require("./lib/loadActorByUsername")
 const { loadFollowersByUri, loadFollowingByUri } = require("./lib/loadFollowersByUsername")
 const { makeMessage } = require("./lib/makeMessage");
 const { wrapInCreate, wrapInOrderedCollection } = require('./lib/wrappers');
-const { sendAcceptMessage } = require("./lib/sendAcceptMessage")
 const { sendLatestMessages, addresseesToString } = require("./lib/sendLatestMessages")
 const { addFollower, removeFollower } = require("./lib/addFollower")
 const { lookupAccountByURI, removeAccount, updateAccount, findInbox } = require("./lib/addAccount")
@@ -250,8 +249,9 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         }
     } catch(e) {
         // IGNORE!!!!!
-        await endAPLog(aplog, e)
-        res.sendStatus(200)
+        console.log(clc.cyan("IGNORING"), "activity already in DB", e)
+        await endAPLog(aplog, "Activity already in DB", 208)
+        res.sendStatus(208)
         return;
     }
 
