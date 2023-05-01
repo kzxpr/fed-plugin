@@ -55,6 +55,10 @@ These MUST be present:
 
 ## Troubleshooting
 
+### If event handler doesn't trigger
+
+Try sending a note from composer
+
 ### gyp error
 
 Do:
