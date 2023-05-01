@@ -81,9 +81,10 @@ function header(){
     body += "LIKE (= favourite): Like > Id > Message as 'id' + author in 'to'<br>"
     body += "REPLY: Create > Note > Use 'inReplyTo' + author in 'to'<br>"
     body += "FOLLOW: Follow > Id > Account as 'id' + author in 'to'<br>"
-    body += "ANNOUNCE (= boost): Announce > Id > Message as 'id' + author in 'to'<br>"
+    body += "ANNOUNCE (= boost): Announce > Id > Message as 'id' + author in 'to' + 'public' is on<br>"
     body += "UPDATE PROFILE: Update it in database, then Update > Id > Profile as 'id'<br>"
     body += "UPDATE POST: Update it in database, then Update > Id > Message as 'id'<br>"
+    body += "DELETE ANNOUNCE: Undo > Object > activity_id as object_id, type = announce, actor = user, object = boosted_post_id";
     body += "<hr>"
     return body;
 }

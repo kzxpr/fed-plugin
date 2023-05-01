@@ -2,7 +2,7 @@ const express = require('express'),
       router = express.Router();
       
 const { createActor } = require("./lib/createActor")
-const { wrapInCreate, wrapInUpdate, wrapInDelete, wrapInFlag, wrapInUndo, wrapInAnnounce, wrapInFollow, wrapInLike } = require("./lib/wrappers")
+const { wrapInCreate, wrapInUpdate, wrapInDelete, wrapInFlag, wrapInUndo, wrapInAnnounce, wrapInFollow, wrapInLike, wrap } = require("./lib/wrappers")
 const { signAndSend } = require("./lib/signAndSend")
 const { makeArticle, makeEvent, makeNote, makeQuestion, makeImage, handleAddress } = require("./lib/makeMessage")
 const { findInbox } = require("./lib/addAccount")
@@ -12,10 +12,10 @@ const clc = require("cli-color")
 const { Account, Message, Follower } = require("./models/db")
 
 const { fn } = require('objection');
-const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
 const { handleActivity } = require('./lib/handleActivity');
 const { makeObject } = require('./lib/makeObject');
-const { header, addName, addContent, addSummary, addAttachments, addTags } = require("./utils/autofields")
+const { header, addName, addContent, addSummary, addAttachments, addTags } = require("./utils/autofields");
+const { default: axios } = require('axios');
 
 const composer_root = "/ap/admin/composer";
 
@@ -205,23 +205,6 @@ router.get("/:username/:activity", (req, res) => {
     res.send(body)
 })
 
-function wrap(activity, obj, params){
-    const { username, domain, ref_url, to, cc } = params;
-    const actor = "https://"+domain+"/u/"+username;
-    //console.log(obj, actor, domain, ref_url)
-    switch(activity){
-        case 'Create': wrapped = wrapInCreate(obj, actor, "guid"); break;
-        case 'Delete': wrapped = wrapInDelete(obj, actor, [], { to, cc }); break;
-        case 'Update': wrapped = wrapInUpdate(obj, actor, [], ref_url); break;
-        case 'Flag': wrapped = wrapInFlag(obj, actor, domain, [], ref_url); break;
-        case 'Undo': wrapped = wrapInUndo(obj, actor, domain, [], ref_url, { to, cc }); break;
-        case 'Announce': wrapped = wrapInAnnounce(obj, actor, { to, cc }, ref_url); break;
-        case 'Follow': wrapped = wrapInFollow(obj, actor, domain, [], ref_url); break;
-        case 'Like': wrapped = wrapInLike(obj, actor, { to, cc }, ref_url); break;
-    }
-    return wrapped
-}
-
 router.all("/:username/:activity/:object", async (req, res) => {
     const { username, activity, object } = req.params;
     const domain = req.app.get('domain');
@@ -309,65 +292,64 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
 router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const { username, activity, object } = req.params;
     const domain = req.app.get('domain');
-
+    
+    /* GET 'to' AND 'cc' FIELDS */
     const to = req.body.to !== undefined ? req.body.to : "";
     const cc = req.body.cc !== undefined ? req.body.cc : "";
+
+    /* CHECK FOR 'public' AND 'followers' FLAGS */
     const pub = ((req.body.pub !== undefined) && (req.body.pub!="false"))
         ? true : false;
     const followshare = ((req.body.followshare !== undefined) && (req.body.followshare!="false"))
         ? true : false;
     
-    // TEMPORARY:
-    const account_uri = "https://"+domain+"/u/"+username;
-    const account = await Account.query().where("uri", "=", account_uri).select("apikey").first();
-    const apikey = account.apikey;
-    
+    /* EXTRACT ALL 'TO' AND 'CC' ADDRESSES INTO ARRAYS */
     const { to_field, cc_field } = handleAddress({ to, cc, pub, followshare, username, domain })
-    const recipient_list = to_field.concat(cc_field)
 
+    /* GENERATE ID AND URI */
     const guid = crypto.randomBytes(16).toString('hex');
+    const user_uri = "https://"+domain+"/u/"+username;
+    const ref_url = user_uri+"/statuses/"+guid;
+
+    /* GENERATE PUBLISH DATE */
     const dd = new Date();
     const published = dd.toISOString();
-    var body = header();
+
+    /* MAKE OBJ */
     const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
 
-    const uri = "https://"+domain+"/u/"+username;
-    const ref_url = uri+"/statuses/"+guid;
+    /* WRAP IN ACTIVITY */
     const wrapped = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });
-    
+
+    /* RENDER BODY FOR WEB */
+    var body = header();
     body += prettyTest(wrapped)
 
-    /* Resolve all recipients */
-    const recipients = await loadRecipientsByList(recipient_list, uri)
+    /* GET API KEY */
+    const account = await Account.query().where("uri", "=", user_uri).select("apikey").first();
+    const apikey = account.apikey;
 
-    /* ADD ACTIVITY TO DATABASE */
-    try {
-        await handleActivity(activity, wrapped)
-    } catch(e) {
-        console.log(e)
-    }
-    
-    for(let recipient of recipients){
-        await findInbox(recipient)
-        .then(async(inbox) => {
-            let recipient_url = new URL(recipient);
-            let targetDomain = recipient_url.hostname;
-            await signAndSend(wrapped, uri, targetDomain, inbox, apikey)
-                .then((data) => {
-                    console.log(clc.green("SUCCESS:"), "Sent to ",recipient,":",data)
-                    body += "To: "+recipient+" = OK<br>";
-                })
-                .catch((err) => {
-                    console.error(err)
-                    body += "To: "+recipient+" = ERROR<br>";
-                })
+    //console.log(wrapped)
+    const sent_log = await axios.post(user_uri+"/outbox",
+            wrapped,
+            {
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  "Authorization": "Bearer "+apikey
+                }
+            }
+        )
+        .then((d) => {
+            if(d.status == 200){
+                const uri = d.headers.location;
+                body += "201 - <a href='"+uri+"'>"+uri+"</a>";
+            }
+            return d.data;
         })
         .catch((e) => {
-            console.error("Could not findInbox for "+recipient, e)
-            body += "To: "+recipient+" = ERROR<br>";
+            return e;
         })
-        
-    }
+    body += prettyTest(sent_log)
 
     body += "<a href='"+composer_root+"'>BACK!</a>"
     res.send(body);

@@ -11,7 +11,7 @@ const { wrapInCreate, wrapInOrderedCollection } = require('./lib/wrappers');
 const { sendAcceptMessage } = require("./lib/sendAcceptMessage")
 const { sendLatestMessages, addresseesToString } = require("./lib/sendLatestMessages")
 const { addFollower, removeFollower } = require("./lib/addFollower")
-const { lookupAccountByURI, removeAccount, updateAccount } = require("./lib/addAccount")
+const { lookupAccountByURI, removeAccount, updateAccount, findInbox } = require("./lib/addAccount")
 const { addLike, removeLike } = require("./lib/addLike")
 const { addAnnounce, removeAnnounce } = require("./lib/addAnnounce")
 const { startAPLog, endAPLog } = require("./lib/aplog");
@@ -20,6 +20,8 @@ const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
 const { Message, Account, Activity } = require('./models/db');
 const { handleActivity, unhandled } = require('./lib/handleActivity');
+const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
+const { signAndSend } = require('./lib/signAndSend');
 
 router.get('/:username', async function (req, res) {
     const aplog = await startAPLog(req)
@@ -97,7 +99,7 @@ router.get('/:username/following', async function (req, res) {
 });
 
 
-router.all(["/:username/outbox"], async(req, res) => {
+router.get(["/:username/outbox"], async(req, res) => {
     const aplog = await startAPLog(req)
     const { username } = req.params;
     const { page } = req.query;
@@ -276,6 +278,110 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         res.sendStatus(statuscode);
         return;
     }    
+});
+
+/**
+ * This requires a FINISHED Activity object!
+ */
+router.post('/:username/outbox', async function (req, res) {
+    const username = req.params.username;
+    let domain = req.app.get('domain');
+    const aplog = await startAPLog(req)
+    const { to, cc, actor, type, id } = req.body;
+    const { authorization, host } = req.headers;
+
+    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor)
+
+    /* AUTHORIZATION */
+    if(host!=domain){
+        // TO-DO: I'm not sure this is working!
+        console.log("UNAUTHORIZED")
+        await endAPLog(aplog, "Unauthorized host", 405)
+        res.sendStatus(405);
+        return;
+    }
+
+    /* CHECK APIKEY */
+    const account_uri = "https://"+domain+"/u/"+username;
+    const account = await Account.query().where("uri", "=", account_uri).select("apikey").first();
+    const apikey = account.apikey;
+
+    if(apikey && authorization != "Bearer "+apikey){
+        console.log("REQ", authorization)
+        await endAPLog(aplog, "Unauthorized Bearer", 405)
+        res.sendStatus(405);
+        return;
+    }
+
+    /* COMBINE 'to' AND 'cc' TO RECIPIENT LIST */
+    let recipient_list = to;
+    if(Array.isArray(cc)){
+        recipient_list = to.concat(cc);
+    }
+
+    /* Resolve all recipients */
+    const recipients = await loadRecipientsByList(recipient_list, actor)
+
+    /* ADD ACTIVITY TO DATABASE */
+    let statuscode;
+    try {
+        await handleActivity(type, wrapped)
+        // Activity was created - Set statuscode to 201
+        statuscode = 201;
+        res.setHeader("Location", id)
+    } catch(e) {
+        console.log(e)
+        statuscode = 500;
+        await endAPLog(aplog, "unknown error", statuscode)
+        res.sendStatus(statuscode);
+        return;
+    }
+    
+    /* SEND IT! */
+    var sent_log = {
+        err: 0,
+        logs: []
+    };
+    for(let recipient of recipients){
+        await findInbox(recipient)
+        .then(async(inbox) => {
+            let recipient_url = new URL(recipient);
+            let targetDomain = recipient_url.hostname;
+            await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
+                .then((data) => {
+                    console.log(clc.green("SUCCESS:"), "Sent to", recipient, ":", data)
+                    sent_log.logs.push({
+                        user: recipient,
+                        status: "ok"
+                    })
+                })
+                .catch((err) => {
+                    console.error(err)
+                    sent_log.logs.push({
+                        user: recipient,
+                        status: err
+                    })
+                    sent_log.err++;
+                })
+        })
+        .catch((e) => {
+            console.error("Could not findInbox for "+recipient, e)
+            sent_log.logs.push({
+                user: recipient,
+                status: e
+            })
+            sent_log.err++;
+        })
+    }
+
+    if(statuscode != 201){
+        await endAPLog(aplog, "Unhandled error", statuscode)
+        res.sendStatus(statuscode);
+        return;
+    }else{
+        await endAPLog(aplog, sent_log)
+        res.send(sent_log)
+    }
 });
 
 router.all("*", async(req, res) => {

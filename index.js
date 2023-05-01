@@ -1,4 +1,5 @@
 const { EventEmitter } = require("events")
+const { sendAnnounce, sendLike } = require("./lib/senders");
 
 // singleton
 let instance = null;
@@ -6,6 +7,21 @@ let instance = null;
 class FedPlugin{
     constructor(config){
         this.eventHandler = new EventEmitter();
+        /*if(config && config.domain){
+            this.domain = config.domain;
+        }else{
+            throw new Error("Please set domain when initiating FedPlugin")
+        }*/
+        this.sendLike = sendLike;
+        this.sendAnnounce = sendAnnounce;
+    }
+
+    setDomain(domain){
+        this.domain = domain;
+    }
+
+    getDomain(){
+        return this.domain;
     }
 
     // singleton
