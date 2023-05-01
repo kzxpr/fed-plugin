@@ -1,3 +1,4 @@
+const emoji = require('node-emoji');
 
 function encodeStr(rawStr){
     /*var encodedStr = rawStr.replace(/[\u00A0-\u9999<>\&]/g, function(i) {

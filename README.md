@@ -52,3 +52,19 @@ These MUST be present:
 * /u/:username
 * /api/inbox
 * webfinger
+
+## Troubleshooting
+
+### gyp error
+
+Do:
+
+    sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
+and
+
+    sudo apt install pkg-config
+
+Use:
+
+    npm install node-canvas --save
