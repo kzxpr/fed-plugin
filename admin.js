@@ -37,6 +37,8 @@ function asyncAuthorizer(username, password, cb) {
     }
 }
 
+router.use(basicUserAuth)
+
 /* ROUTES */
 router.use(cors({ credentials: true, origin: true }));
 
