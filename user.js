@@ -22,6 +22,11 @@ const { handleActivity, unhandled } = require('./lib/handleActivity');
 const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
 const { signAndSend } = require('./lib/signAndSend');
 
+/* BODY PARSER */
+var bodyParser = require('body-parser')
+router.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
+router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+
 router.get('/:username', async function (req, res) {
     const aplog = await startAPLog(req)
     let name = req.params.username;
