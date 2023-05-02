@@ -7,11 +7,11 @@ let instance = null;
 class FedPlugin{
     constructor(config){
         this.eventHandler = new EventEmitter();
-        /*if(config && config.domain){
+        if(config && config.domain){
             this.domain = config.domain;
         }else{
             throw new Error("Please set domain when initiating FedPlugin")
-        }*/
+        }
         this.sendLike = sendLike;
         this.sendAnnounce = sendAnnounce;
         this.sendAccept = sendAccept;
