@@ -32,7 +32,7 @@ router.get('/:username', async function (req, res) {
     let name = req.params.username;
     let domain = req.app.get('domain');
 
-    loadActorByUsername(name, domain)
+    await loadActorByUsername(name, domain)
     .then(async(data) => {
         await endAPLog(aplog, data);
         res.json(data);
@@ -61,7 +61,7 @@ router.get('/:username/followers', async function (req, res) {
     })
 
     // Load items and wrap
-    loadFollowersByUri(uri, page)
+    await loadFollowersByUri(uri, page)
     .then(async (followersCollection) => {
         await endAPLog(aplog, followersCollection)
         res.json(followersCollection);
@@ -91,7 +91,7 @@ router.get('/:username/following', async function (req, res) {
     })
     
     // Load items and wrap
-    loadFollowingByUri(uri, page)
+    await loadFollowingByUri(uri, page)
     .then(async (followersCollection) => {
         await endAPLog(aplog, followersCollection)
         res.json(followersCollection);
@@ -245,6 +245,8 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         res.sendStatus(400) // bad request!
         return;
     }
+
+    console.log("I'm done here")
 
     // CHECK IF ACTIVITY IS ALREADY REGISTERED - IF NOT, ADD ACTIVITY
     try{
