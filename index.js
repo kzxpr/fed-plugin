@@ -18,6 +18,7 @@ class FedPlugin{
     }
 
     setDomain(domain){
+        console.log("DOmain set", domain)
         this.domain = domain;
     }
 
