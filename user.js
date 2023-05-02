@@ -204,6 +204,7 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
 })
 
 router.post(['/inbox', '/:username/inbox'], async function (req, res) {
+    console.log("What's in inbox?", req)
     const username = req.params.username || "!shared!";
     let domain = req.app.get('domain');
     const aplog = await startAPLog(req)
