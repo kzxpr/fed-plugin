@@ -1,0 +1,6 @@
+ROUTES
+	1. startAP
+	2. Find parameters/inputs
+	3. Do stuff
+	4. endAPlog
+	5. return JSON

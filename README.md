@@ -1,11 +1,22 @@
 # FED plugin
 
+## To add this to your project
+
+Add to existing project
+
+    git submodule add git@github.com:kzxpr/fed-plugin.git
+
 ## How to add to a project
 
 ExpressJS example
 
 **Stuff to include**
 
+    /* BODY PARSER */
+    var bodyParser = require('body-parser')
+    app.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
+    app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+    
     /* CORS */
     const cors = require('cors')
 
