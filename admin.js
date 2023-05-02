@@ -37,8 +37,10 @@ function asyncAuthorizer(username, password, cb) {
     }
 }
 
+router.use(basicUserAuth)
+
 /* ROUTES */
-router.use(cors({ credentials: true, origin: true }), basicUserAuth);
+router.use(cors({ credentials: true, origin: true }));
 
 const composer_routes = require("./composer")
 router.use("/composer", composer_routes);
@@ -51,6 +53,7 @@ router.get("/logs", async(req, res) => {
         res.send(pageLogs(logs))
     })
     .catch((e) => {
+        console.log(e)
         res.sendStatus(404)
     })
 })

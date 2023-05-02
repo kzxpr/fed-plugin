@@ -15,6 +15,27 @@ class Activity extends Model {
 	static get tableName() {
 		return 'apactivities';
 	}
+
+	static get relationMappings() {
+		return {
+			message: {
+				relation: Model.HasOneRelation,
+				modelClass: Message,
+				join: {
+					from: 'apactivities.object',
+					to: 'apmessages.uri'
+				}
+			},
+			creator: {
+				relation: Model.HasOneRelation,
+				modelClass: Account,
+				join: {
+					from: 'apactivities.actor',
+					to: 'apaccounts.uri'
+				}
+			},
+		}
+	}
 }
 
 class Addressee extends Model {

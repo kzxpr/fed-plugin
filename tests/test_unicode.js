@@ -1,4 +1,4 @@
-const { encodeStr } = require("./server/fed-plugin/lib/addAccount")
+const { encodeStr } = require("../utils/encodeStr");
 
 function test() {
     const str = "ch 🍑 N ▇ I S B ▇ B";
