@@ -209,8 +209,6 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
 })
 
 router.post(['/inbox', '/:username/inbox'], async function (req, res) {
-    console.log("What's in inbox?", req)
-    console.log("CONTENT", JSON.stringify(req.body))
     const username = req.params.username || "!shared!";
     let domain = req.app.get('domain');
     const aplog = await startAPLog(req)
@@ -237,7 +235,6 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         }
 
         //   const digest = crypto.createHash('sha256').update(JSON.stringify(body)).digest('base64');
-        console.log("WHAT TO VERIFY!", req.headers)
         const verified = verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, publicKey);
         if(!verified){
             throw new Error("Signature invalid")
@@ -248,8 +245,6 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         res.sendStatus(400) // bad request!
         return;
     }
-
-    console.log("I'm done here")
 
     // CHECK IF ACTIVITY IS ALREADY REGISTERED - IF NOT, ADD ACTIVITY
     try{
@@ -265,8 +260,6 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         res.sendStatus(208)
         return;
     }
-
-    console.log("We're down here!", req.body)
 
     try {
         const resp = await handleActivity(reqtype, req.body)
