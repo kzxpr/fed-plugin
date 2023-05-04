@@ -24,7 +24,7 @@ const { signAndSend } = require('./lib/signAndSend');
 
 /* BODY PARSER */
 var bodyParser = require('body-parser')
-router.use(bodyParser.json({type: 'application/json'})); // support json encoded bodies
+router.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
 router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 router.get('/:username', async function (req, res) {
