@@ -220,7 +220,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
 
     try {
         // VALIDATE DIGEST
-        const digest = makeDigest(req.body);
+        const digest = makeDigest(JSON.stringify(req.body));
         if(digest!=req.headers.digest){
             console.log("DIGEST DOESN'T MATCH");//, digest, req.headers)
             //throw new Error("Digest doesn't match")
@@ -237,7 +237,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         }
 
         console.log("WHAT TO VERIFY!", req.headers)
-        const verified = verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, req.body, publicKey);
+        const verified = verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, JSON.stringify(req.body), publicKey);
         if(!verified){
             throw new Error("Signature invalid")
         }
