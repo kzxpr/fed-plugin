@@ -209,7 +209,8 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
 })
 
 router.post(['/inbox', '/:username/inbox'], async function (req, res) {
-    console.log("What's in inbox?", req.body)
+    console.log("What's in inbox?", req)
+    console.log("CONTENT", JSON.stringify(req.body))
     const username = req.params.username || "!shared!";
     let domain = req.app.get('domain');
     const aplog = await startAPLog(req)
@@ -336,6 +337,7 @@ router.post('/:username/outbox', async function (req, res) {
     let statuscode;
     try {
         await handleActivity(type, wrapped)
+        console.log("DOWN HERE!", id)
         // Activity was created - Set statuscode to 201
         statuscode = 201;
         res.setHeader("Location", id)
@@ -347,6 +349,7 @@ router.post('/:username/outbox', async function (req, res) {
         return;
     }
     
+    console.log("READY TO SEND...")
     /* SEND IT! */
     var sent_log = {
         err: 0,
@@ -355,6 +358,7 @@ router.post('/:username/outbox', async function (req, res) {
     for(let recipient of recipients){
         await findInbox(recipient)
         .then(async(inbox) => {
+            console.log("Send to inbox", inbox)
             let recipient_url = new URL(recipient);
             let targetDomain = recipient_url.hostname;
             await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
