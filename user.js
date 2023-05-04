@@ -236,6 +236,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             throw new Error("External account not found - so no public key!!!!!!!")
         }
 
+        console.log("NEVERMIND VERIFY!")
         const verified = true;// verifySign({ method: 'POST', url: req.originalUrl, ...req.headers}, req.body, publicKey);
         if(!verified){
             throw new Error("Signature invalid")
