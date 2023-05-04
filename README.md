@@ -83,3 +83,17 @@ and
 Use:
 
     npm install node-canvas --save
+
+### If sending HTTP request within the same server
+
+Remember to allow outgoing traffic on the specific port that the proxy is runing on.
+
+In UFW:
+
+    sudo ufw allow out 3000/tcp
+
+Where "3000" is the port!
+
+I might need to look into RabbitMQ:
+
+https://www.rabbitmq.com/tutorials/tutorial-one-javascript.html

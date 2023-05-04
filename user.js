@@ -263,6 +263,8 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
         return;
     }
 
+    console.log("We're down here!", req.body)
+
     try {
         const resp = await handleActivity(reqtype, req.body)
         const statuscode = resp.statuscode || 200;
