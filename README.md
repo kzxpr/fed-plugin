@@ -10,17 +10,44 @@ Add to existing project
 
 ExpressJS example
 
-**Stuff to include**
+### Configuration
+
+Your ".env" should include these values:
+
+    AP_USER=<username for admin panel>
+    AP_PASS=<password for admin panel>
+    DOMAIN=<your domain name>
+    AP_USERNAME=<default username AFTER creating in admin panel>
+    AP_KEY=<apikey for username AFTER creating in admin panel>
+
+### Database migrations
+
+Copy contents from /fed-plugin/import-migrations/ to your own migration folder.
+
+### Stuff to include
+
+Import body-parser and the class:
 
     /* BODY PARSER */
     var bodyParser = require('body-parser')
     app.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
     app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-    
-    app.set('domain', <my_domain>);
+
+    /* FedPlugin */
+    const fed = require("./server/fed-plugin/index")({ domain: <DOMAIN> })
 
     /* CORS */
     const cors = require('cors')
+
+    /* PASS PROXY - TO GET IPs */
+    app.set('trust proxy',true); 
+
+Recommended import:
+
+    /* CLC */
+    const clc = require("cli-color");
+
+Import routes:
 
     /* ACTIVITY PUB ENDPOINTS */
     const ap_webfinger = require("./server/fed-plugin/webfinger")
@@ -31,13 +58,39 @@ ExpressJS example
     app.use("/u", cors(), ap_user)
     app.use("/ap/admin", ap_admin_routes);
 
+### Example of trigger - auto accept follows
 
-**Example of endpoint**
+Requires clc, AP_USERNAME og AP_KEY
+
+    fed.eventHandler.on("follow:add", async function(follow_body){
+        console.log(clc.magenta("TRIGGER"), "Send accept to follow")
+
+        const local_uri = follow_body.object;
+        const domain = await getConfigByKey("domain")
+
+        await fed.sendAccept(AP_USERNAME, AP_KEY, follow_body.actor, follow_body)
+        .then((d) => {
+            console.log(clc.green("SUCCESS"), "accepted follow from", follow_body.actor, "to", AP_USERNAME)
+        })
+        .catch((e) => {
+            console.log(clc.red("ERROR"), "while sending accept message to", follow_body.to, e)
+        })
+    })
+
+### TRIGGER on create messages
+
+Requires clc
+
+    fed.eventHandler.on("create:add", async function(body){
+        console.log(clc.magenta("TRIGGER create:add"), body.to)
+    })
+
+### Example of endpoint
 
     const { checkFeed } = require("./server/activitypub/lib/checkFeed")
     app.get("/checkfeed", checkFeed)
 
-**How to include models**
+### How to include models
 
     const { Tag, Account, Message } = require("./server/fed-plugin/models/db")
 
