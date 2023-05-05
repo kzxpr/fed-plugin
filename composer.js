@@ -292,6 +292,7 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
 router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const { username, activity, object } = req.params;
     const domain = req.app.get('domain');
+    console.log("D", domain)
     
     /* GET 'to' AND 'cc' FIELDS */
     const to = req.body.to !== undefined ? req.body.to : "";
@@ -329,12 +330,12 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const account = await Account.query().where("uri", "=", user_uri).select("apikey").first();
     const apikey = account.apikey;
 
-    //console.log(wrapped)
+    /* POST TO OUTBOX! */
     const sent_log = await axios.post(user_uri+"/outbox",
             wrapped,
             {
                 headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'Content-Type': 'application/activity+json',
                   "Authorization": "Bearer "+apikey
                 }
             }

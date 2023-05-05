@@ -13,7 +13,7 @@ router.get('/', async function (req, res) {
     } else {
         let account = resource.replace('acct:','');
         const parts = account.split("@");
-        loadWebfingerByUsername(parts[0], parts[1])
+        await loadWebfingerByUsername(parts[0], parts[1])
         .then(async (data) => {
             await endAPLog(aplog, data)
             res.json(data);

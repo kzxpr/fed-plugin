@@ -248,6 +248,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
 
     // CHECK IF ACTIVITY IS ALREADY REGISTERED - IF NOT, ADD ACTIVITY
     try{
+        console.log("What's in req", req.body)
         const proceed = await addActivity(req.body)
         if(!proceed){
             //throw new Error("Activity already in DB")
@@ -296,7 +297,7 @@ router.post('/:username/outbox', async function (req, res) {
     const { to, cc, actor, type, id } = req.body;
     const { authorization, host } = req.headers;
 
-    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor)
+    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor, req.body)
 
     /* AUTHORIZATION */
     if(host!=domain){
@@ -332,7 +333,7 @@ router.post('/:username/outbox', async function (req, res) {
     let statuscode;
     try {
         await handleActivity(type, wrapped)
-        console.log("DOWN HERE!", id)
+        //console.log("DOWN HERE!", id)
         // Activity was created - Set statuscode to 201
         statuscode = 201;
         res.setHeader("Location", id)
@@ -344,16 +345,17 @@ router.post('/:username/outbox', async function (req, res) {
         return;
     }
     
-    console.log("READY TO SEND...")
+    console.log("READY TO SEND...", recipients)
     /* SEND IT! */
     var sent_log = {
         err: 0,
         logs: []
     };
     for(let recipient of recipients){
+        console.log("R", recipient)
         await findInbox(recipient)
         .then(async(inbox) => {
-            console.log("Send to inbox", inbox)
+            console.log("FOUDN INBOX", inbox)
             let recipient_url = new URL(recipient);
             let targetDomain = recipient_url.hostname;
             await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)

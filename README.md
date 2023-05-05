@@ -6,6 +6,22 @@ Add to existing project
 
     git submodule add git@github.com:kzxpr/fed-plugin.git
 
+## Some dependencies
+
+    npm install cli-color node-emoji blurhash canvas --save
+
+## Nginx
+
+To track IP addresses in nginx, add:
+
+    //
+
+## UFW firewall
+
+Remember to allow traffic on the ports BEHIND the proxy:
+
+    sudo ufw allow out 5013/tcp
+
 ## How to add to a project
 
 ExpressJS example
@@ -64,9 +80,6 @@ Requires clc, AP_USERNAME og AP_KEY
 
     fed.eventHandler.on("follow:add", async function(follow_body){
         console.log(clc.magenta("TRIGGER"), "Send accept to follow")
-
-        const local_uri = follow_body.object;
-        const domain = await getConfigByKey("domain")
 
         await fed.sendAccept(AP_USERNAME, AP_KEY, follow_body.actor, follow_body)
         .then((d) => {
