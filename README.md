@@ -8,7 +8,7 @@ Add to existing project
 
 ## Some dependencies
 
-    npm install cli-color node-emoji blurhash canvas --save
+    npm install cli-color node-emoji blurhash canvas luxon --save
 
 ## Nginx
 
