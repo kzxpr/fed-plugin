@@ -81,7 +81,7 @@ function header(){
     body += "<div style='font-size: 10pt'>"
     body += "LIKE (= favourite): Like > Id > Message as 'id' + author URI in 'to'<br>"
     body += "REPLY: Create > Note > Use 'inReplyTo' + author URI in 'to'<br>"
-    body += "FOLLOW: Follow > Id > Account as 'id' + followee URI in 'to'<br>"
+    body += "FOLLOW: Follow > Id > Account to follow as 'id' and 'to'<br>"
     body += "ANNOUNCE (= boost): Announce > Id > Message as 'id' + original author uri in 'to' + 'public' is on<br>"
     body += "UPDATE PROFILE: Update it in database, then Update > Id > Profile as 'id'<br>"
     body += "UPDATE POST: Update it in database, then Update > Id > Message as 'id'<br>"
