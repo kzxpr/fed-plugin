@@ -78,8 +78,13 @@ function onlyUnique(value, index, array) {
     return array.indexOf(value) === index;
 }
 
-function date2mysql(d){
-    return new Date(d).toISOString().slice(0, 19).replace('T', ' ');
+const { DateTime } = require("luxon");
+
+function date2mysql(dd_str){
+    var d = new Date(dd_str)
+    var str = DateTime.fromISO(d.toISOString()).toString();
+	str = str.slice(0, 19).replace('T', ' ');
+	return str;
 }
 
 function isJSON(str) {
@@ -90,4 +95,24 @@ function isJSON(str) {
     }
 }
 
-module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON }
+function dynamicDate(date){
+	const dd = new Date(date);
+	const now = new Date();
+	const diff = now.getTime() - dd.getTime();
+	const daynames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+	const datestr = daynames[dd.getDay()]+" "+dd.getDate()+"/"+(dd.getMonth()+1)+"-"+dd.getFullYear();
+	const timestr = dd.getHours()+":"+dd.getMinutes();
+	if(diff < (60 * 1000)){ // less than 1 minutes
+		return "Just now"
+	}else if(diff < (60 * 60 * 1000)){ // less than 59 minutes
+		return Math.floor(diff/60000)+" minutes ago"
+	}else if(diff < (24 * 60 * 60 * 1000)){ // less than 24 hours
+		return Math.floor(diff/(60000*60))+" hours ago"
+	}else if(diff < (7 * 24 * 60 * 60 * 1000)){ // less than 7 days
+		return Math.floor(diff/(60000*60*24))+" days ago"
+	}else{
+		return datestr+"<br>"+timestr;
+	}
+}
+
+module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON, dynamicDate }
