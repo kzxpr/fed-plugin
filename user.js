@@ -38,8 +38,9 @@ router.get('/:username', async function (req, res) {
         res.json(data);
     })
     .catch(async(err) => {
+        console.log(clc.cyan("WARNING"), "No Account for '"+name+"'")
         await endAPLog(aplog, err.msg, err.statuscode)
-        res.sendStatus(err.statuscode).send("Error at /u/"+name+": "+err.msg)
+        res.sendStatus(err.statuscode);
     })
 });
 

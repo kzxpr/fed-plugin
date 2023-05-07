@@ -119,6 +119,12 @@ class Follower extends Model {
 	}
 }
 
+class AccountLink extends Model {
+	static get tableName() {
+		return 'apaccounts_link';
+	}
+}
+
 class Account extends Model {
 	static get tableName() {
 		return 'apaccounts';
@@ -148,6 +154,14 @@ class Account extends Model {
 						to: 'apfollowers.username'
 					},
 					to: 'apaccounts.uri'
+				}
+			},
+			links: {
+				relation: Model.HasManyRelation,
+				modelClass: AccountLink,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apaccounts_link.user_uri'
 				}
 			}
 		}
@@ -248,4 +262,4 @@ class Request extends Model {
 	}
 }
 
-module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee }
+module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink }
