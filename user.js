@@ -186,11 +186,34 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
     const { username, messageid } = req.params;
     const domain = req.app.get('domain');
     const uri = "https://"+domain+"/u/"+username+"/statuses/"+messageid;
-    const messages = await Message.query().where("uri", "=", uri).first()
+    const messages = await Message.query()
+        .where("uri", "=", uri).first()
+        .withGraphFetched("[attachments, tags]")
         .then(async (message) => {
             //console.log("M", uri, message)
             if(message){
-                const msg = await makeMessage(message.type, username, domain, message.guid, {published: message.publishedAt, content: message.content});
+                var href = new Array();
+                var mediaType = new Array();
+                var blurhash = new Array();
+                var width = new Array();
+                var height = new Array();
+                var n_attachs = 0;
+                if(message.attachments){
+                    n_attachs = message.attachments.length;
+                    for(let a of message.attachments){
+                        href.push(a.url)
+                        mediaType.push(a.mediaType)
+                        blurhash.push(a.blurhash)
+                        width.push(a.width)
+                        height.push(a.height)
+                    }
+                }
+                const msg = await makeMessage(message.type, username, domain, message.guid,
+                    { published: message.publishedAt,
+                        content: message.content,
+                        n_attachs, href, mediaType, blurhash, width, height
+                    }
+                );
                 
                 /* IT SEEMS LIKE THIS SHOULD *NOT* BE WRAPPED */
 
