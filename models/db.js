@@ -183,6 +183,14 @@ class Message extends Model {
 					to: 'apaccounts.uri'
 				}
 			},
+			addressees_raw: {
+				relation: Model.HasManyRelation,
+				modelClass: Addressee,
+				join: {
+					from: 'apmessages.uri',
+					to: 'apaddressee.message_uri'
+				}
+			},
 			addressees: {
 				relation: Model.ManyToManyRelation,
 				modelClass: Account,

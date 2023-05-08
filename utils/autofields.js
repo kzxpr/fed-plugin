@@ -78,6 +78,12 @@ function addTags(options){
 
 function header(){
     var body = "<h1>Let's test ActivityPub</h1>"
+    body += `<style type='text/css'>
+        .bordtop > td {
+            border-top: 1px solid #ccc;
+            vertical-align: top;
+        }
+    </style>`
     body += "<div style='font-size: 10pt'>"
     body += "LIKE (= favourite): Like > Id > Message as 'id' + author URI in 'to'<br>"
     body += "REPLY: Create > Note > Use 'inReplyTo' + author URI in 'to'<br>"

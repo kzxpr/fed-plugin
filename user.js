@@ -17,7 +17,7 @@ const { startAPLog, endAPLog } = require("./lib/aplog");
 const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage');
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
-const { Message, Account, Activity } = require('./models/db');
+const { Message, Account, Activity, Addressee } = require('./models/db');
 const { handleActivity, unhandled } = require('./lib/handleActivity');
 const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsByList');
 const { signAndSend } = require('./lib/signAndSend');
@@ -115,13 +115,47 @@ router.get(["/:username/outbox"], async(req, res) => {
         .then((d) => { return d.uri })
         .catch((e) => { res.sendStatus(500)})
     
+    //
+    const public_messages = await Addressee.query()
+        .where("type", 1) // this is public!
+        .select("message_uri")
+    .then((rows) => {
+        return rows.map((v) => { return v.message_uri })
+    })
+    
     // Load items
     const activities = await Activity.query()
-    .where("actor", "=", user_uri)
-    .select("uri as id", "type", "createdAt as published", "object")
+        .whereIn("object", public_messages)
+        .andWhere("actor", "=", user_uri)
+        .select("uri as id", "type", "createdAt as published", "object")
+        .withGraphFetched("message.[creator, addressees_raw]")
     .then((activities) => {
+        
         const all = activities.map((a) => {
-            return { ...a, to: ["https://www.w3.org/ns/activitystreams#Public"], cc: [ user_uri + "/followers" ], actor: user_uri };
+            const to = a.message.addressees_raw.flatMap((v) => {
+                if(v.field=='to'){
+                    return [ v.account_uri ]
+                }else{
+                    return []; // skip
+                }
+            })
+            //addresseesToString() ??
+            const cc = a.message.addressees_raw.flatMap((v) => {
+                if(v.field=='cc'){
+                    return [ v.account_uri ]
+                }else{
+                    return []; // skip
+                }
+            })
+
+            return {
+                id: a.id,
+                type: a.type,
+                published: a.published,
+                to,
+                cc,
+                actor: user_uri
+            };
         })
         return all;
     })

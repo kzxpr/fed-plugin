@@ -171,8 +171,8 @@ router.route("/:username/edit/messages")
         .orderBy("publishedAt", "desc")
         .then((messages) => {  
             for(let message of messages){
-                body += "<tr>";
-                body += "<td>"+message.guid+"<td>"+message.uri+"<td>"+message.content+"<td>"+message.publishedAt;
+                body += "<tr class='bordtop'>";
+                body += "<td>"+message.guid+"<td>"+message.uri+"<td>"+message.content+"<td>"+new Date(message.publishedAt).toISOString();
                 body += "<td><a href='"+composer_root+"/"+username+"/Delete/Object?guid="+message.uri+"&object_id="+message.uri+"'>Delete</a>"
                 body += "</tr>";
             }
