@@ -173,7 +173,7 @@ router.route("/:username/edit/messages")
             for(let message of messages){
                 body += "<tr>";
                 body += "<td>"+message.guid+"<td>"+message.uri+"<td>"+message.content+"<td>"+message.publishedAt;
-                body += "<td><a href='"+composer_root+"/"+username+"/Delete/Id?guid="+message.uri+"'>Delete</a>"
+                body += "<td><a href='"+composer_root+"/"+username+"/Delete/Object?guid="+message.uri+"&object_id="+message.uri+"'>Delete</a>"
                 body += "</tr>";
             }
             //body += "<input type='submit' value='Update'>";
