@@ -319,8 +319,12 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     /* MAKE OBJ */
     const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
 
+    console.log("OBJ", obj)
+
     /* WRAP IN ACTIVITY */
     const wrapped = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });
+
+    console.log("WRAPPED", wrapped)
 
     /* RENDER BODY FOR WEB */
     var body = header();
