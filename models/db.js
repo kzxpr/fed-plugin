@@ -182,7 +182,15 @@ class Account extends Model {
 					from: 'apaccounts.uri',
 					to: 'apaccounts_link.user_uri'
 				}
-			}
+			},
+			messages: {
+				relation: Model.HasManyRelation,
+				modelClass: Message,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apmessages.attributedTo'
+				}
+			},
 		}
 	}
 }

@@ -58,7 +58,7 @@ function addAttachments(options){
 
 function addTags(options){
     const { tags, n_tags } = options;
-    var body = "<tr><td colspan='3'><u>Tags:</u><td></tr>";
+    var body = "<tr><td><u>Tags:</u><td colspan='2'>JUST WRITE '#' IN TEXT AND THEY WILL COME DOWN HERE</td></tr>";
     body += "<tr><td>number of tags</td><td><input type='number' name='n_tags' value='"+n_tags+"'></td></tr>"
     var hidden = "<input type='hidden' name='n_tags' value='"+n_tags+"'>";
     if(n_tags>0){
