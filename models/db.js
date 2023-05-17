@@ -69,6 +69,25 @@ class Tag extends Model {
 	}
 }
 
+class TagChannel extends Model {
+	static get tableName() {
+		return 'aptags_channels';
+	}
+
+	/*static get relationMappings() {
+		return {
+			messages: {
+				relation: Model.HasManyRelation,
+				modelClass: Message,
+				join: {
+					from: 'aptags.message_uri',
+					to: 'apmessages.uri'
+				}
+			}
+		}
+	}*/
+}
+
 class Like extends Model {
 	static get tableName() {
 		return 'aplikes';
@@ -270,4 +289,4 @@ class Request extends Model {
 	}
 }
 
-module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink }
+module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink, TagChannel }
