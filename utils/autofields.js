@@ -11,7 +11,7 @@ function addName(options){
 function addContent(options){
     const { content } = options;
 
-    var body = "<tr><td>content</td><td><input type='text' name='content' value='"+content+"'></td></tr>"
+    var body = "<tr><td>content</td><td><textarea cols='35' rows='6' name='content'>"+content+"</textarea></td></tr>"
     var hidden = "<input type='hidden' name='content' value='"+content+"'>";
 
     return { body, hidden }
