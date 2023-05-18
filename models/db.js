@@ -136,6 +136,27 @@ class Follower extends Model {
 	static get tableName() {
 		return 'apfollowers';
 	}
+
+	static get relationMappings() {
+		return {
+			follow_activity: {
+				relation: Model.HasOneRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apfollowers.follow_activity_uri',
+					to: 'apactivities.uri'
+				}
+			},
+			accept_activity: {
+				relation: Model.HasOneRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apfollowers.accept_activity_uri',
+					to: 'apactivities.uri'
+				}
+			},
+		}
+	}
 }
 
 class AccountLink extends Model {

@@ -1,7 +1,7 @@
 const express = require('express'),
       router = express.Router();
 
-const { Message, Account } = require('./models/db');
+const { Message, Account, Follower } = require('./models/db');
 const { header } = require('./utils/autofields');
 const { fn } = require('objection');
 
@@ -11,7 +11,6 @@ router.route("/messages").all(async(req, res) => {
     const domain = req.app.get('domain');
     const username = res.locals.username;
     const account_uri = "https://"+domain+"/u/"+username;
-    console.log(res.locals.username, account_uri)
 
     var body = header();
     body += "Hi "+username+".<br>";
@@ -38,6 +37,95 @@ router.route("/messages").all(async(req, res) => {
             body += "<input type='submit' value='Delete'>"
             body += "</form>"
             body += "</td>";
+            body += "</tr>";
+        }
+    })
+    .catch((e) => {
+        console.error("ERROR looking up account", e)
+        body += "No messages found!"
+    })
+    body += "</table>"
+    res.send(body)
+})
+
+router.route("/followings").all(async(req, res) => {
+    const domain = req.app.get('domain');
+    const username = res.locals.username;
+    const account_uri = "https://"+domain+"/u/"+username;
+
+    var body = header();
+    body += "Hi "+username+".<br>";
+    if (res.locals.msg){
+        body += "<div style='border: 1px solid #000; padding: 10px; margin: 10px'>"+res.locals.msg+"</div>"
+    }
+
+    body += "<h3>Add follower by User URI:</h3>";
+    body += "<form action='"+composer_root+"/"+username+"/Follow/Id' method='post'>";
+    body += "<input type='text' value='' name='stringobj'>"
+    body += "<input type='submit' value='Send follow'>"
+    body += "</form>"
+
+    body += "<h3>"+username+" follows:</h3>"
+    body += "<table>"
+    body += "<thead><tr><td>username<td>Accepted?<td>Timestamp<td>Actions</tr></thead>"
+    body += "<tr><td></tr>"
+    await Follower.query().where("follower", "=", account_uri)
+        //.withGraphFetched("follow_activity")
+        .orderBy("createdAt", "desc")
+    .then((followings) => {  
+        for(let following of followings){
+            body += "<tr class='bordtop'>";
+            body += "<td>"+following.username+"<td>"+following.accepted+"<td>"+new Date(following.createdAt).toISOString();
+            body += "<td>";
+            body += "<form action='"+composer_root+"/"+username+"/Undo/Object' method='post'>";
+            body += "<input type='hidden' name='to' value='"+following.username+"'>"
+            body += "<input type='hidden' name='obj_id' value='"+following.follow_activity_uri+"'>"
+            body += "<input type='hidden' name='obj_type' value='Follow'>"
+            body += "<input type='hidden' name='obj_actor' value='"+following.follower+"'>"
+            body += "<input type='hidden' name='obj_object' value='"+following.username+"'>"
+            body += "<input type='submit' value='Unfollow'>"
+            body += "</form>"
+            body += "</td>";
+            body += "</tr>";
+        }
+    })
+    .catch((e) => {
+        console.error("ERROR looking up account", e)
+        body += "No messages found!"
+    })
+    body += "</table>"
+
+    body += "<h3>They follow "+username+":</h3>"
+    body += "<table>"
+    body += "<thead><tr><td>username<td>Accepted?<td>Timestamp<td>Actions</tr></thead>"
+    body += "<tr><td></tr>"
+    await Follower.query().where("username", "=", account_uri)
+        .orderBy("createdAt", "desc")
+    .then((followers) => {  
+        for(let follower of followers){
+            body += "<tr class='bordtop'>";
+            body += "<td>"+follower.follower+"<td>"+follower.accepted+"<td>"+new Date(follower.createdAt).toISOString();
+            body += "<td>";
+            body += "<form action='"+composer_root+"/"+username+"/Reject/Object' method='post'>";
+            body += "<input type='hidden' name='to' value='"+follower.follower+"'>"
+            body += "<input type='hidden' name='obj_id' value='"+follower.follow_activity_uri+"'>"
+            body += "<input type='hidden' name='obj_type' value='Follow'>"
+            body += "<input type='hidden' name='obj_actor' value='"+follower.username+"'>"
+            body += "<input type='hidden' name='obj_object' value='"+follower.follower+"'>"
+            body += "<input type='submit' value='Reject'>"
+            body += "</form>"
+            body += "</td>";
+            body += "<td>"
+            if(follower.accepted==0){
+                body += "<form action='"+composer_root+"/"+username+"/Accept/Object' method='post'>"
+                body += "<input type='hidden' name='to' value='"+follower.follower+"'>"
+                body += "<input type='hidden' name='obj_id' value='"+follower.follow_activity_uri+"'>"
+                body += "<input type='hidden' name='obj_type' value='Follow'>"
+                body += "<input type='hidden' name='obj_actor' value='"+follower.username+"'>"
+                body += "<input type='hidden' name='obj_object' value='"+follower.follower+"'>"
+                body += "<input type='submit' value='Accept'>"
+            }
+            body += "</td>"
             body += "</tr>";
         }
     })

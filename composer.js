@@ -91,7 +91,8 @@ router.get("/:username", (req, res) => {
     body += "Additional stuff"
     body += "<ul>"
     body += "<li><a href='"+composer_root+"/"+username+"/edit/account'>Update account</a></li>"
-    body += "<li><a href='"+composer_root+"/"+username+"/edit/messages'>Update messages</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/messages'>Manage messages</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/followings'>Manage followings</a></li>"
     body += "</ul>"
     res.send(body)
 })
@@ -149,7 +150,7 @@ router.all("/:username/:activity/:object", async (req, res) => {
     hidden = "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"/sign' method='post'>";
     body += "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"' method='post'>"
     
-    const { form_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
+    const { form_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid, activity }, req.body)
     body += form_append;
     hidden += hidden_append;
     body += "<br><input type='submit' value='Update preview'>"
@@ -184,7 +185,7 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
     const dd = new Date();
     const published = dd.toISOString();
     var body = header();
-    const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
+    const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid, activity }, req.body)
 
     body += "Review one last time...<br>"
     body += "<form action='"+composer_root+"/"+username+"/"+activity+"/"+object+"/sign/send' method='post'>"
@@ -227,7 +228,7 @@ router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const published = dd.toISOString();
 
     /* MAKE OBJ */
-    const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid }, req.body)
+    const { body_append, hidden_append, obj } = await makeObject(object, { username, domain, published, guid, activity }, req.body)
 
     /* WRAP IN ACTIVITY */
     const wrapped = wrap(activity, obj, { username, domain, ref_url, to: to_field, cc: cc_field });

@@ -83,6 +83,9 @@ function header(){
             border-top: 1px solid #ccc;
             vertical-align: top;
         }
+        thead{
+            font-weight: bold;
+        }
     </style>`
     body += "<div style='font-size: 10pt'>"
     body += "LIKE (= favourite): Like > Id > Message as 'id' + author URI in 'to'<br>"
