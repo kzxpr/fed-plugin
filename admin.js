@@ -45,7 +45,37 @@ router.use(cors({ credentials: true, origin: true }));
 const composer_routes = require("./composer")
 router.use("/composer", composer_routes);
 
-const { pageLogs, logItem } = require("./pages")
+const { pageLogs, logItem } = require("./pages");
+const clc = require('cli-color');
+
+var CronJob = require('cron').CronJob;
+
+var housekeeping = new CronJob("0 0 19 * * *", cleanUpLogs)
+housekeeping.start()
+
+router.get("/cleanup", async(req, res) => {
+    await cleanUpLogs()
+    .then((d) => {
+        res.send("ok")
+    })
+    .catch((e) => {
+        res.send(e)
+    })
+})
+
+async function cleanUpLogs(){
+    return new Promise(async(resolve, reject) => {
+        await Request.query().where("timestamp", "<", raw("now() - interval 72 hour"))
+        .delete()
+        .then((d) => {
+            console.log(clc.green("CLEANED UP"))
+            resolve(d)
+        })
+        .catch((e) => {
+            reject(e)
+        })
+    })
+}
 
 router.get("/logs", async(req, res) => {
     await Request.query().where("timestamp", ">", raw("now() - interval 72 hour")).orderBy("timestamp", "desc")
