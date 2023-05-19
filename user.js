@@ -132,9 +132,13 @@ router.get(["/:username/outbox"], async(req, res) => {
     .then((activities) => {
         
         const all = activities.map((a) => {
-            const to = flatMapAddressees(a.message.addressees_raw, 'to')
-            const cc = flatMapAddressees(a.message.addressees_raw, 'cc')
-
+            var to = new Array();
+            var cc = new Array();
+            if(a.message.addressees_raw){
+                to = flatMapAddressees(a.message.addressees_raw, 'to')
+                cc = flatMapAddressees(a.message.addressees_raw, 'cc')
+            }
+            
             return {
                 id: a.id,
                 type: a.type,
@@ -240,21 +244,26 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
                 
                 const message_id = message.uri.split("/")
                 const guid = message_id[(message_id.length-1)]
-                var msg = await makeMessage(message.type, username, domain, guid,
+                const msg = await makeMessage(message.type, username, domain, guid,
                     {
                         url: message.url,
                         published: message.publishedAt,
                         content: message.content,
-                        to, cc,
+                        to, cc, summary: message.summary,
+                        updated: message.updated,
                         n_attachs, href, mediaType, blurhash, width, height, tags: taglist
                     }
                 );
-                msg["@context"] = ["https://www.w3.org/ns/activitystreams"]
+
+                var obj = {
+                    "@context": ["https://www.w3.org/ns/activitystreams"],
+                    ...msg
+                }
                 
                 /* IT SEEMS LIKE THIS SHOULD *NOT* BE WRAPPED */
 
-                await endAPLog(aplog, msg)
-                res.json(msg)
+                await endAPLog(aplog, obj)
+                res.json(obj)
             }else{
                 await endAPLog(aplog, "The message you requested doesn't exist", 404)
                 res.sendStatus(404)
@@ -356,7 +365,7 @@ router.post('/:username/outbox', async function (req, res) {
     const { to, cc, actor, type, id } = req.body;
     const { authorization, host } = req.headers;
 
-    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor, req.body)
+    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor)
 
     /* AUTHORIZATION */
     if(host!=domain){
