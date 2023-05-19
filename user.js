@@ -23,7 +23,8 @@ const { loadRecipients, loadRecipientsByList } = require('./lib/loadRecipientsBy
 const { signAndSend } = require('./lib/signAndSend');
 
 /* BODY PARSER */
-var bodyParser = require('body-parser')
+var bodyParser = require('body-parser');
+const { flatMapAddressees } = require('./utils/flatmapaddressees');
 router.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
 router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
@@ -102,16 +103,6 @@ router.get('/:username/following', async function (req, res) {
         res.statusCode(500);
     });
 });
-
-function flatMapAddressees(arr, field){
-    return arr.flatMap((v) => {
-        if(v.field==field){
-            return [ v.account_uri ]
-        }else{
-            return []; // skip
-        }
-    })
-}
 
 router.get(["/:username/outbox"], async(req, res) => {
     const aplog = await startAPLog(req)
@@ -242,18 +233,23 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
 
                 const to = flatMapAddressees(message.addressees_raw, 'to')
                 const cc = flatMapAddressees(message.addressees_raw, 'cc')
+
+                const taglist = message.tags.map((v) => {
+                    return v.name.substr(1)
+                })
                 
                 const message_id = message.uri.split("/")
                 const guid = message_id[(message_id.length-1)]
-                const msg = await makeMessage(message.type, username, domain, guid,
+                var msg = await makeMessage(message.type, username, domain, guid,
                     {
                         url: message.url,
                         published: message.publishedAt,
                         content: message.content,
                         to, cc,
-                        n_attachs, href, mediaType, blurhash, width, height
+                        n_attachs, href, mediaType, blurhash, width, height, tags: taglist
                     }
                 );
+                msg["@context"] = ["https://www.w3.org/ns/activitystreams"]
                 
                 /* IT SEEMS LIKE THIS SHOULD *NOT* BE WRAPPED */
 
@@ -360,7 +356,7 @@ router.post('/:username/outbox', async function (req, res) {
     const { to, cc, actor, type, id } = req.body;
     const { authorization, host } = req.headers;
 
-    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor)
+    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor, req.body)
 
     /* AUTHORIZATION */
     if(host!=domain){

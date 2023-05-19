@@ -4,6 +4,7 @@ const express = require('express'),
 const { Message, Account, Follower, Like, Announce } = require('./models/db');
 const { header } = require('./utils/autofields');
 const { fn } = require('objection');
+const { flatMapAddressees } = require('./utils/flatmapaddressees');
 
 const composer_root = "/ap/composer";
 
@@ -22,10 +23,11 @@ router.route("/messages").all(async(req, res) => {
     body += "<tr><td></tr>"
     await Message.query().where("attributedTo", "=", account_uri)
     .orderBy("publishedAt", "desc")
+    .withGraphFetched("addressees_raw")
     .then((messages) => {  
         for(let message of messages){
             body += "<tr class='bordtop'>";
-            body += "<td>"+message.id+"<td>"+message.uri+"<td>"+message.content+"<td>"+new Date(message.publishedAt).toISOString();
+            body += "<td>"+message.id+"<td>"+message.type+"<td>"+message.uri+"<td>"+message.content+"<td>"+new Date(message.publishedAt).toISOString();
             body += "<td>";
             body += "<form action='"+composer_root+"/"+username+"/Delete/Object' method='post'>";
             body += "<input type='hidden' name='obj_id' value='"+message.uri+"'>"
@@ -35,6 +37,23 @@ router.route("/messages").all(async(req, res) => {
             //body += "<input type='hidden' name='pub' value='"+message.public+"'>"
             //body += "<input type='hidden' name='followshare' value='"+message.followshare+"'>"
             body += "<input type='submit' value='Delete'>"
+            body += "</form>"
+            body += "<td>";
+            const to = flatMapAddressees(message.addressees_raw, 'to', 0);
+            const cc = flatMapAddressees(message.addressees_raw, 'cc', 0);
+            const message_id = message.uri.split("/")
+            const guid = message_id[(message_id.length-1)]
+            body += "<form action='"+composer_root+"/"+username+"/Update/"+message.type+"' method='post'>";
+            body += "<input type='hidden' name='to' value='"+(to.join(" "))+"'>"
+            body += "<input type='hidden' name='cc' value='"+(cc.join(" "))+"'>"
+            body += "<input type='hidden' name='content' value='"+(message.content ? message.content : "")+"'>"
+            body += "<input type='hidden' name='summary' value='"+(message.summary ? message.summary : "")+"'>"
+            body += "<input type='hidden' name='inreplyto' value='"+message.inReplyTo+"'>"
+            body += "<input type='hidden' name='manual_guid' value='"+guid+"'>"
+            //body += "<input type='hidden' name='obj_actor' value='"+account_uri+"'>"
+            body += "<input type='hidden' name='pub' value='"+message.public+"'>"
+            body += "<input type='hidden' name='followshare' value='"+message.followshare+"'>"
+            body += "<input type='submit' value='Update'>"
             body += "</form>"
             body += "</td>";
             body += "</tr>";
