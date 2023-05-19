@@ -1,3 +1,4 @@
+const { encodeStr } = require("./encodeStr");
 
 function addName(options){
     const { name } = options;
@@ -12,7 +13,7 @@ function addContent(options){
     const { content } = options;
 
     var body = "<tr><td>content</td><td><textarea cols='35' rows='6' name='content'>"+content+"</textarea></td></tr>"
-    var hidden = "<input type='hidden' name='content' value='"+content+"'>";
+    var hidden = "<input type='hidden' name='content' value='"+encodeStr(content)+"'>";
 
     return { body, hidden }
 }
@@ -20,8 +21,8 @@ function addContent(options){
 function addSummary(options){
     const { summary } = options;
 
-    var body = "<tr><td>summary</td><td><input type='text' name='summary' value='"+summary+"'></td></tr>"
-    var hidden = "<input type='hidden' name='summary' value='"+summary+"'>";
+    var body = "<tr><td>summary</td><td><input type='text' name='summary' value='"+encodeStr(summary)+"'></td></tr>"
+    var hidden = "<input type='hidden' name='summary' value='"+encodeStr(summary)+"'>";
 
     return { body, hidden }
 }

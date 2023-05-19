@@ -124,9 +124,6 @@ router.all("/:username/:activity/:object", async (req, res) => {
     
     var guid = "";
     if(req.query.guid){
-        //guid = req.query.guid;
-        //console.log(guid)
-        //req.body.manual_guid = guid;
         req.body.stringobj = req.query.guid;
     }
     const dd = new Date();
