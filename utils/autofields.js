@@ -29,7 +29,7 @@ function addSummary(options){
 
 function addAttachments(options){
     const { mediaType, href, n_attachs } = options;
-    var body = "<tr><td colspan='3'><u>Attachments:</u><td></tr>";
+    var body = "<tr><td><u>Attachments:</u><td colspan='2'><a href='/imgpicker' target='_new'>Imgpicker</a></tr>";
     body += "<tr><td>number of attachments</td><td><input type='number' name='n_attachs' value='"+n_attachs+"'></td></tr>"
     var hidden = "<input type='hidden' name='n_attachs' value='"+n_attachs+"'>";
     const attachment_types = new Array("image/png", "image/jpeg", "audio/mpeg")
