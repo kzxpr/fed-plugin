@@ -203,7 +203,6 @@ router.post("/:username/:activity/:object/sign", async (req, res) => {
 router.post("/:username/:activity/:object/sign/send", async (req, res) => {
     const { username, activity, object } = req.params;
     const domain = req.app.get('domain');
-    console.log("D", domain)
     
     /* GET 'to' AND 'cc' FIELDS */
     const to = req.body.to !== undefined ? req.body.to : "";

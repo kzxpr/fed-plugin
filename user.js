@@ -103,6 +103,15 @@ router.get('/:username/following', async function (req, res) {
     });
 });
 
+function flatMapAddressees(arr, field){
+    return arr.flatMap((v) => {
+        if(v.field==field){
+            return [ v.account_uri ]
+        }else{
+            return []; // skip
+        }
+    })
+}
 
 router.get(["/:username/outbox"], async(req, res) => {
     const aplog = await startAPLog(req)
@@ -132,21 +141,8 @@ router.get(["/:username/outbox"], async(req, res) => {
     .then((activities) => {
         
         const all = activities.map((a) => {
-            const to = a.message.addressees_raw.flatMap((v) => {
-                if(v.field=='to'){
-                    return [ v.account_uri ]
-                }else{
-                    return []; // skip
-                }
-            })
-            //addresseesToString() ??
-            const cc = a.message.addressees_raw.flatMap((v) => {
-                if(v.field=='cc'){
-                    return [ v.account_uri ]
-                }else{
-                    return []; // skip
-                }
-            })
+            const to = flatMapAddressees(a.message.addressees_raw, 'to')
+            const cc = flatMapAddressees(a.message.addressees_raw, 'cc')
 
             return {
                 id: a.id,
@@ -223,7 +219,7 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
     const uri = "https://"+domain+"/u/"+username+"/statuses/"+messageid;
     const messages = await Message.query()
         .where("uri", "=", uri).first()
-        .withGraphFetched("[attachments, tags]")
+        .withGraphFetched("[attachments, tags, addressees_raw]")
         .then(async (message) => {
             //console.log("M", uri, message)
             if(message){
@@ -243,9 +239,18 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
                         height.push(a.height)
                     }
                 }
-                const msg = await makeMessage(message.type, username, domain, message.guid,
-                    { published: message.publishedAt,
+
+                const to = flatMapAddressees(message.addressees_raw, 'to')
+                const cc = flatMapAddressees(message.addressees_raw, 'cc')
+                
+                const message_id = message.uri.split("/")
+                const guid = message_id[(message_id.length-1)]
+                const msg = await makeMessage(message.type, username, domain, guid,
+                    {
+                        url: message.url,
+                        published: message.publishedAt,
                         content: message.content,
+                        to, cc,
                         n_attachs, href, mediaType, blurhash, width, height
                     }
                 );
@@ -409,6 +414,7 @@ router.post('/:username/outbox', async function (req, res) {
         err: 0,
         logs: []
     };
+
     for(let recipient of recipients){
         //console.log("R", recipient)
         await findInbox(recipient)
