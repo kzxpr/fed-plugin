@@ -1,7 +1,7 @@
 const express = require('express'),
       router = express.Router();
 
-const { Message, Account, Follower } = require('./models/db');
+const { Message, Account, Follower, Like, Announce } = require('./models/db');
 const { header } = require('./utils/autofields');
 const { fn } = require('objection');
 
@@ -43,6 +43,90 @@ router.route("/messages").all(async(req, res) => {
     .catch((e) => {
         console.error("ERROR looking up account", e)
         body += "No messages found!"
+    })
+    body += "</table>"
+    res.send(body)
+})
+
+router.route("/likes").all(async(req, res) => {
+    const domain = req.app.get('domain');
+    const username = res.locals.username;
+    const account_uri = "https://"+domain+"/u/"+username;
+
+    var body = header();
+    body += "Hi "+username+".<br>";
+    if (res.locals.msg){
+        body += "<div style='border: 1px solid #000; padding: 10px; margin: 10px'>"+res.locals.msg+"</div>"
+    }
+
+    body += "<h3>"+username+" has liked...</h3>"
+    body += "<table>"
+    body += "<thead>"
+    body += "<tr><td>id<td>message_uri<td>date</tr>"
+    body += "</thead>"
+    await Like.query().where("account_uri", "=", account_uri)
+    .orderBy("createdAt", "desc")
+    .then((likes) => {  
+        for(let like of likes){
+            body += "<tr class='bordtop'>";
+            body += "<td>"+like.id+"<td>"+like.message_uri+"<td>"+new Date(like.createdAt).toISOString();
+            body += "<td>";
+            body += "<form action='"+composer_root+"/"+username+"/Undo/Object' method='post'>";
+            body += "<input type='hidden' name='obj_id' value='"+like.activity_uri+"'>"
+            body += "<input type='hidden' name='obj_type' value='Like'>"
+            body += "<input type='hidden' name='obj_actor' value='"+like.account_uri+"'>"
+            body += "<input type='hidden' name='obj_object' value='"+like.message_uri+"'>"
+            body += "<input type='submit' value='Unlike'>"
+            body += "</form>"
+            body += "</td>";
+            body += "</tr>";
+        }
+    })
+    .catch((e) => {
+        console.error("ERROR looking up likes", e)
+        body += "No likes found!"
+    })
+    body += "</table>"
+    res.send(body)
+})
+
+router.route("/announces").all(async(req, res) => {
+    const domain = req.app.get('domain');
+    const username = res.locals.username;
+    const account_uri = "https://"+domain+"/u/"+username;
+
+    var body = header();
+    body += "Hi "+username+".<br>";
+    if (res.locals.msg){
+        body += "<div style='border: 1px solid #000; padding: 10px; margin: 10px'>"+res.locals.msg+"</div>"
+    }
+
+    body += "<h3>"+username+" has boosted...</h3>"
+    body += "<table>"
+    body += "<thead>"
+    body += "<tr><td>id<td>message_uri<td>date</tr>"
+    body += "</thead>"
+    await Announce.query().where("account_uri", "=", account_uri)
+    .orderBy("createdAt", "desc")
+    .then((announces) => {  
+        for(let announce of announces){
+            body += "<tr class='bordtop'>";
+            body += "<td>"+announce.id+"<td>"+announce.message_uri+"<td>"+new Date(announce.createdAt).toISOString();
+            body += "<td>";
+            body += "<form action='"+composer_root+"/"+username+"/Undo/Object' method='post'>";
+            body += "<input type='hidden' name='obj_id' value='"+announce.activity_uri+"'>"
+            body += "<input type='hidden' name='obj_type' value='Announce'>"
+            body += "<input type='hidden' name='obj_actor' value='"+announce.account_uri+"'>"
+            body += "<input type='hidden' name='obj_object' value='"+announce.message_uri+"'>"
+            body += "<input type='submit' value='Unboost'>"
+            body += "</form>"
+            body += "</td>";
+            body += "</tr>";
+        }
+    })
+    .catch((e) => {
+        console.error("ERROR looking up likes", e)
+        body += "No likes found!"
     })
     body += "</table>"
     res.send(body)

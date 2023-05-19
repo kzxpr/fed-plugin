@@ -93,6 +93,8 @@ router.get("/:username", (req, res) => {
     body += "<li><a href='"+composer_root+"/"+username+"/edit/account'>Update account</a></li>"
     body += "<li><a href='"+composer_root+"/"+username+"/edit/messages'>Manage messages</a></li>"
     body += "<li><a href='"+composer_root+"/"+username+"/edit/followings'>Manage followings</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/likes'>Manage likes</a></li>"
+    body += "<li><a href='"+composer_root+"/"+username+"/edit/announces'>Manage announces</a></li>"
     body += "</ul>"
     res.send(body)
 })
