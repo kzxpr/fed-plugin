@@ -49,9 +49,9 @@ function addAttachments(options){
             body += "</select>";
             
             body += "<input type='text' name='attachname' value='"+(attachname && attachname[n] ? attachname[n] : "")+"'>";
-            body += "<input type='text' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
-            body += "<input type='text' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
-            body += "<input type='text' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
+            body += "<input type='hidden' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
+            body += "<input type='hidden' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
+            body += "<input type='hidden' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
             body += "</td>"
             body += "</tr>"
 
