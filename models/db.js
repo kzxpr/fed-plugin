@@ -16,6 +16,14 @@ class Activity extends Model {
 		return 'apactivities';
 	}
 
+	static get modifiers() {
+		return {
+			filtered(builder) {
+				builder.whereIn('type', ["Create", "Announce"]);
+			}
+		}
+	}
+
 	static get relationMappings() {
 		return {
 			message: {
