@@ -23,12 +23,19 @@ router.route("/messages").all(async(req, res) => {
     body += "<tr><td></tr>"
     await Message.query().where("attributedTo", "=", account_uri)
     .orderBy("publishedAt", "desc")
-    .withGraphFetched("addressees_raw")
+    .withGraphFetched("[addressees_raw, attachments]")
     .then((messages) => {  
         for(let message of messages){
             body += "<tr class='bordtop'>";
-            body += "<td>"+message.id+"<td>"+message.type+"<td>"+message.uri+"<td>"+message.content+"<td>"+new Date(message.publishedAt).toISOString();
+            body += "<td>"+message.id;
+            body += "<td>"+message.type+"<td>"+message.uri;
+            body += "<td>"+(message.content ? message.content : "")
+            body += "<td>"+message.attachments.length;
+            body += "<td>"+new Date(message.publishedAt).toISOString();
+            
             body += "<td>";
+
+            /* DELETE FORM */
             body += "<form action='"+composer_root+"/"+username+"/Delete/Object' method='post'>";
             body += "<input type='hidden' name='obj_id' value='"+message.uri+"'>"
             body += "<input type='hidden' name='obj_object' value='"+message.uri+"'>"
@@ -38,6 +45,8 @@ router.route("/messages").all(async(req, res) => {
             //body += "<input type='hidden' name='followshare' value='"+message.followshare+"'>"
             body += "<input type='submit' value='Delete'>"
             body += "</form>"
+
+            /* UPDATE FORM */
             body += "<td>";
             const to = flatMapAddressees(message.addressees_raw, 'to', 0);
             const cc = flatMapAddressees(message.addressees_raw, 'cc', 0);
@@ -50,11 +59,23 @@ router.route("/messages").all(async(req, res) => {
             body += "<input type='hidden' name='summary' value='"+(message.summary ? message.summary : "")+"'>"
             body += "<input type='hidden' name='inreplyto' value='"+message.inReplyTo+"'>"
             body += "<input type='hidden' name='manual_guid' value='"+guid+"'>"
-            //body += "<input type='hidden' name='obj_actor' value='"+account_uri+"'>"
             body += "<input type='hidden' name='pub' value='"+message.public+"'>"
             body += "<input type='hidden' name='followshare' value='"+message.followshare+"'>"
+
+            // HANDLE ATTACHMENTS
+            body += "<input type='hidden' name='n_attachs' value='"+message.attachments.length+"'>"
+            for(let attach of message.attachments){
+                body += "<input type='hidden' name='href[]' value='"+attach.url+"'>"
+                body += "<input type='hidden' name='mediaType[]' value='"+attach.mediaType+"'>"
+                body += "<input type='hidden' name='blurhash[]' value='"+attach.blurhash+"'>"
+                body += "<input type='hidden' name='attachname[]' value='"+attach.name+"'>"
+                body += "<input type='hidden' name='width[]' value='"+attach.width+"'>"
+                body += "<input type='hidden' name='height[]' value='"+attach.height+"'>"
+            }
             body += "<input type='submit' value='Update'>"
             body += "</form>"
+
+            /* CLOSE ROW */
             body += "</td>";
             body += "</tr>";
         }

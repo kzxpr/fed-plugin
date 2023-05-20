@@ -28,7 +28,7 @@ function addSummary(options){
 }
 
 function addAttachments(options){
-    const { mediaType, href, n_attachs } = options;
+    const { mediaType, href, n_attachs, blurhash, width, height, attachname } = options;
     var body = "<tr><td><u>Attachments:</u><td colspan='2'><a href='/imgpicker' target='_new'>Imgpicker</a></tr>";
     body += "<tr><td>number of attachments</td><td><input type='number' name='n_attachs' value='"+n_attachs+"'></td></tr>"
     var hidden = "<input type='hidden' name='n_attachs' value='"+n_attachs+"'>";
@@ -46,11 +46,21 @@ function addAttachments(options){
                 }
                 body += ">"+attachment_type+"</option>"
             }
-            body += "</select></td>"
+            body += "</select>";
+            
+            body += "<input type='text' name='attachname' value='"+(attachname && attachname[n] ? attachname[n] : "")+"'>";
+            body += "<input type='text' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
+            body += "<input type='text' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
+            body += "<input type='text' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
+            body += "</td>"
             body += "</tr>"
 
             hidden += "<input type='hidden' name='mediaType' value='"+mediaType[n]+"'>";
             hidden += "<input type='hidden' name='href' value='"+href[n]+"'>";
+            hidden += "<input type='hidden' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
+            hidden += "<input type='hidden' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
+            hidden += "<input type='hidden' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
+            hidden += "<input type='hidden' name='attachname' value='"+(attachname && attachname[n] ? attachname[n] : "")+"'>";
         }
     }
 
