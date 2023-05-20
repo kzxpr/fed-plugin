@@ -134,7 +134,7 @@ router.get(["/:username/outbox"], async(req, res) => {
         const all = activities.map((a) => {
             var to = new Array();
             var cc = new Array();
-            if(a.message.addressees_raw){
+            if(a.message && a.message.addressees_raw){
                 to = flatMapAddressees(a.message.addressees_raw, 'to')
                 cc = flatMapAddressees(a.message.addressees_raw, 'cc')
             }
