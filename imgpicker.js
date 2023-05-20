@@ -17,4 +17,8 @@ router.get("/", async(req, res) => {
     res.send(body)
 })
 
+router.get("*", (req, res) => {
+    res.sendStatus(404)
+})
+
 module.exports = router;

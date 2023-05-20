@@ -103,4 +103,8 @@ router.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "admin.html"))
 })
 
+router.get("*", (req, res) => {
+    res.sendStatus(404)
+})
+
 module.exports = router;

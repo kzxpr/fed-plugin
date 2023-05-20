@@ -69,12 +69,18 @@ Import routes:
     const ap_webfinger = require("./server/fed-plugin/webfinger")
     const ap_user = require("./server/fed-plugin/user")
     const ap_admin_routes = require("./server/fed-plugin/admin")
+    const ap_interact = require("./server/fed-plugin/interact")
+    const ap_tags = require("./server/fed-plugin/tags")
+    const imgpicker = require("./server/fed-plugin/imgpicker")
 
     app.use("/.well-known/webfinger/", cors(), ap_webfinger)
     app.use("/u", cors(), ap_user)
-    app.use("/ap/admin", ap_admin_routes);
+    app.use("/ap", ap_admin_routes);
+    app.use("/interact", ap_interact)
+    app.use("/tags", ap_tags)
+    app.use("/imgpicker", imgpicker)
 
-### Example of trigger - auto accept follows
+### TRIGGER: Auto accept follows
 
 Requires clc, then looks up api_key in DB
 
