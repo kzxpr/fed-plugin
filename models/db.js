@@ -212,6 +212,14 @@ class Account extends Model {
 					to: 'apmessages.attributedTo'
 				}
 			},
+			activities: {
+				relation: Model.HasManyRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apactivities.actor'
+				}
+			},
 		}
 	}
 }
