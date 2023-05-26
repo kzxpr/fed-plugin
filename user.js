@@ -370,7 +370,7 @@ router.post('/:username/outbox', async function (req, res) {
     /* AUTHORIZATION */
     if(host!=domain){
         // TO-DO: I'm not sure this is working!
-        console.log("UNAUTHORIZED")
+        console.log("UNAUTHORIZED", host, domain)
         await endAPLog(aplog, "Unauthorized host", 405)
         res.sendStatus(405);
         return;
@@ -382,7 +382,7 @@ router.post('/:username/outbox', async function (req, res) {
     const apikey = account.apikey;
 
     if(apikey && authorization != "Bearer "+apikey){
-        console.log("REQ", authorization)
+        console.log("Unauthorized bearer (check apikey)", authorization)
         await endAPLog(aplog, "Unauthorized Bearer", 405)
         res.sendStatus(405);
         return;
