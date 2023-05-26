@@ -47,6 +47,7 @@ router.use("/composer", composer_routes);
 
 const { pageLogs, logItem } = require("./pages");
 const clc = require('cli-color');
+const { handleOutbox } = require('./lib/checkFeed');
 
 var CronJob = require('cron').CronJob;
 
@@ -76,6 +77,13 @@ async function cleanUpLogs(){
         })
     })
 }
+
+router.get("/crawl", async(req, res) => {
+    const { uri } = req.query;
+    console.log(uri)
+    await handleOutbox(uri, 5)
+    res.send("CRAWLING DONE!")
+})
 
 router.get("/logs", async(req, res) => {
     await Request.query().where("timestamp", ">", raw("now() - interval 72 hour")).orderBy("timestamp", "desc")

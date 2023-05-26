@@ -209,6 +209,7 @@ router.route("/followings").all(async(req, res) => {
             body += "<input type='hidden' name='obj_object' value='"+following.username+"'>"
             body += "<input type='submit' value='Unfollow'>"
             body += "</form>"
+            body += "<button onClick='document.location=\"/ap/crawl?uri="+following.username+"\"'>Crawl their feed and boost!</button>"
             body += "</td>";
             body += "</tr>";
         }
