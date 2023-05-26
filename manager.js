@@ -211,7 +211,7 @@ router.route("/followings").all(async(req, res) => {
             body += "</form>"
             body += "</td>";
             body += "<td>";
-            body += "<button onClick='document.location=\"/ap/crawl?uri="+following.username+"\"'>Crawl their feed and boost (for ALL users)!</button>"
+            body += "<button><a href='/ap/crawl?uri="+following.username+"'>Crawl their feed and boost (for ALL users)!</a></button>"
             body += "</td>";
             body += "</tr>";
         }

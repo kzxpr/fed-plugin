@@ -421,33 +421,39 @@ router.post('/:username/outbox', async function (req, res) {
     };
 
     for(let recipient of recipients){
-        //console.log("R", recipient)
-        await findInbox(recipient)
+        var recipient_uri;
+        if(typeof recipient === "string"){
+            recipient_uri = recipient
+        }else{
+            recipient_uri = recipient.id;
+        }
+        //console.log("R", recipient_uri)
+        await findInbox(recipient_uri)
         .then(async(inbox) => {
             //console.log("FOUDN INBOX", inbox)
-            let recipient_url = new URL(recipient);
+            let recipient_url = new URL(recipient_uri);
             let targetDomain = recipient_url.hostname;
             await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
                 .then((data) => {
-                    console.log(clc.green("SUCCESS:"), "Sent to", recipient, ":", data)
+                    console.log(clc.green("SUCCESS:"), "Sent to", recipient_uri, ":", data)
                     sent_log.logs.push({
-                        user: recipient,
+                        user: recipient_uri,
                         status: "ok"
                     })
                 })
                 .catch((err) => {
                     console.error(err)
                     sent_log.logs.push({
-                        user: recipient,
+                        user: recipient_uri,
                         status: err
                     })
                     sent_log.err++;
                 })
         })
         .catch((e) => {
-            console.error("Could not findInbox for "+recipient, e)
+            console.error("Could not findInbox for "+recipient_uri, e)
             sent_log.logs.push({
-                user: recipient,
+                user: recipient_uri,
                 status: e
             })
             sent_log.err++;
