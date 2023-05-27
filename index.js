@@ -1,5 +1,5 @@
 const { EventEmitter } = require("events")
-const { sendAnnounce, sendLike, sendAccept, sendNote, sendFollow } = require("./lib/senders");
+const { sendAnnounce, sendLike, sendAccept, sendNote, sendFollow, sendCreate } = require("./lib/senders");
 
 // singleton
 let instance = null;
@@ -16,6 +16,7 @@ class FedPlugin{
         this.sendAnnounce = sendAnnounce;
         this.sendAccept = sendAccept;
         this.sendNote = sendNote;
+        this.sendCreate = sendCreate;
         this.sendFollow = sendFollow;
     }
 

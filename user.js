@@ -188,7 +188,9 @@ router.get(["/:username/collections/featured"], async(req, res) => {
         .catch((e) => { res.sendStatus(500)})
     
     // Load items
-    const messages = await Message.query().where("attributedTo", user_uri).andWhere("pinned", "=", 1)
+    const messages = await Message.query()
+        .where("attributedTo", user_uri)
+        .andWhere("pinned", "=", 1)
         .withGraphFetched("[addressees]")
     .then(async(messages) => {
         var output = new Array();
