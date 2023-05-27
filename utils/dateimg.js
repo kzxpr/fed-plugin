@@ -5,7 +5,6 @@ const { createCanvas, loadImage } = require('canvas')
 
 router.get("/:input", (req, res) => {
     const { input } = req.params;
-    console.log(input)
     var dd;
     if(input){
         dd = new Date(input);
