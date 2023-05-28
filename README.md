@@ -1,5 +1,11 @@
 # FED plugin
 
+This is a **prototype** and should only be used for experimental purposes
+
+No gurantees - except that it wont be backwards compatible until version 1.0.0.
+
+Eventually, this will become a npm module, but meanwhile it's used as a git submodule.
+
 ## To add this to your project
 
 Add to existing project
@@ -8,7 +14,7 @@ Add to existing project
 
 ## Some dependencies
 
-    npm install cli-color node-emoji blurhash canvas luxon --save
+    npm install cli-color node-emoji blurhash canvas luxon cookie-parser --save
 
 ## Nginx
 
@@ -127,6 +133,13 @@ Requires clc
 ### How to include models
 
     const { Tag, Account, Message } = require("./server/fed-plugin/models/db")
+
+## To make a "Follow" button
+
+    <div style="border: 1px solid #fff; display: flex; align-items: center">
+		<img src="/public/icons/activitypub.png" height="32">
+		<a href="/interact?type=follow&object=@{{account.handle}}" title="ActivityPub handle: @{{account.handle}}">Follow</a>
+	</div>
 
 ## Important endpoints
 

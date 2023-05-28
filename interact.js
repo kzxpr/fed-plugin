@@ -2,32 +2,132 @@ const express = require('express');
 const { getWebfinger, readLinkFromWebfinger } = require('./lib/ap-feed');
 const router = express.Router();
 
-router.get("/", async(req, res) => {
-    const { follower, follow } = req.query;
-    var follower_clean = follower;
-    if(follower.substr(0, 1) == "@"){
-        follower_clean = follower.substr(1);
+var cookieParser = require('cookie-parser');
+router.use(cookieParser());
+
+function displayFollowInfo(handle = "", msg = ""){
+    var html = "<h1>FediFollow</h1>";
+    if(msg){
+        html += "<b>ERROR</b>: "+msg+"<br>"
     }
-    if(follower_clean.search("@")>-1){
-        await getWebfinger(follower_clean)
-        .then(async(webfinger) => {
-            const test = await readLinkFromWebfinger(webfinger, "http://ostatus.org/schema/1.0/subscribe")
+    html += "You are about to follow <i>"+handle+"</i> on the fediverse using ActivityPub.<br><br>"
+    html += "<b>If you already have an account</b><br>"
+    html += "Enter your instance here:<br>"
+    html += "<form action='/interact/' method='get'>"
+    html += "<input type='hidden' name='object' value='"+handle+"'>"
+    html += "<input type='hidden' name='type' value='follow'>"
+    html += "<input type='text' name='actor'><br>";
+    html += "<input type='checkbox' name='remember' value='true'> Remember my instance (this sets a necessary cookie, obviously!)<br>"
+    html += "<input type='submit' value='Follow!'>"
+    html += "</form>"
+    html += "<br>"
+    html += "<b>If you don't have an Account</b><br>"
+    html += "<a href='https://fed-it.nu'>Find an instance to join now!</a><br><br>"
+    if(handle){
+        html += "<b>If nothing works</b><br>"
+        html += "Copy/paste this handle on your instance:<br>"
+        html += "<input type='text' value='"+handle+"'>";
+        html += "<input type='button' value='COPY'>"
+        html += "<br>"
+    }
+    html += "<br><button>Close</button>"
+    return html;
+}
+
+/**
+ * This returns the subscribe object (including template) from a webfinger
+ * @param {object} webfinger 
+ * @returns promise
+ *  resolves as subscribe {object}
+ *  rejects with error {string}
+ */
+async function findSubscribeInWebfinger(webfinger){
+    return new Promise(async(resolve, reject) => {
+        await readLinkFromWebfinger(webfinger, "http://ostatus.org/schema/1.0/subscribe")
             .then((subscribe) => {
-                res.redirect(subscribe.template.replace("{uri}", follow))
+                resolve(subscribe)
+                //res.redirect(subscribe.template.replace("{uri}", follow))
             })
             .catch((e) => {
                 console.log("ERROR in read", e)
-                res.send("'" + follower_clean.split("@")[1] + "' doesn't have an interaction schema")
+                reject("'" + follower_clean.split("@")[1] + "' doesn't have an interaction schema")
             })
-        })
-        .catch((e) => {
-            console.log("ERROR", e)
-            res.send("'" + follower_clean.split("@")[1] + "' is not a valid ActivityPub instance")
-        })
-    }else{
-        res.send("'" + follower+"' is invalid as ActivityPub handle!")
-    }
+    })
+}
+
+
+/**
+ * 
+ * @param {string} handle 
+ * @returns Promise
+ *  resolves webfinger as object if correct
+ *  rejects with string
+ */
+async function validateHandle(handle){
+    return new Promise(async(resolve, reject) => {
+        var handle_clean = handle;
+        if(handle.substr(0, 1) == "@"){
+            handle_clean = handle.substr(1);
+        }
+        if(handle_clean.search("@")>-1){
+            await getWebfinger(handle_clean)
+            .then(async(webfinger) => {
+                resolve(webfinger)
+            })
+            .catch((e) => {
+                console.log("ERROR", e)
+                reject("'" + follower_clean.split("@")[1] + "' is not a valid ActivityPub instance")
+            })
+        }else{
+            reject("'" + follower+"' is invalid as ActivityPub handle!")
+        }
+    })
     
+}
+
+router.get("/", async(req, res) => {
+    var output;
+    var redirect = "";
+    try{
+        var { type, object, actor, remember } = req.query;
+
+        // If no actor is set, get from cookie if it exists
+        if(!actor && req.cookies.actor){
+            actor = req.cookies.actor
+        }
+        
+        // Check is actor is set
+        if(!actor){
+            // Display everything, if no actor
+            output = displayFollowInfo(object);
+        }else{
+            // Actor was found - validate actor and find template
+            const webfinger = await validateHandle(actor)
+            if(type=="follow"){
+                const subscribe = await findSubscribeInWebfinger(webfinger)
+                if(subscribe.template){
+                    if(remember){
+                        res.cookie("actor", actor)
+                    }
+                    redirect = subscribe.template.replace("{uri}", object)
+                }else{
+                    output = displayFollowInfo(object, "No 'template' on your webfinger")
+                }                
+            }else{
+                output = displayFollowInfo(object, "Internal error - type not recognized")
+            }            
+        }
+
+        if(redirect!=""){
+            res.redirect(redirect)
+        }else{
+            res.send(output)
+        }
+    }catch(e){
+        console.log("ERROR inside /interact", e)
+        output = displayFollowInfo(object, e)
+        res.send(output)
+    }
 })
 
 
