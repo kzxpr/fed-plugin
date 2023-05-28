@@ -1,3 +1,6 @@
+const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const monthnames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
 function fillWithZero(str, len){
     var countstr = str.toString();
     return "0".repeat(len - countstr.length)+str;
@@ -115,4 +118,13 @@ function dynamicDate(date){
 	}
 }
 
-module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON, dynamicDate }
+function prettyDatetime(datetime) {
+	if(datetime){
+		const my_date = new Date(datetime)
+		return days[my_date.getDay()] + " " + my_date.getDate() + " " + monthnames[my_date.getMonth()] + " " + my_date.getFullYear() + " " + my_date.getHours() + ":" + fillWithZero(my_date.getMinutes(), 2);
+	}else{
+		return;
+	}
+}
+
+module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON, dynamicDate, prettyDatetime }

@@ -7,14 +7,10 @@ const clc = require('cli-color');
 const { loadActorByUsername } = require("./lib/loadActorByUsername")
 const { loadFollowersByUri, loadFollowingByUri } = require("./lib/loadFollowersByUsername")
 const { makeMessage } = require("./lib/makeMessage");
-const { wrapInCreate, wrapInOrderedCollection } = require('./lib/wrappers');
-const { sendLatestMessages, addresseesToString } = require("./lib/sendLatestMessages")
-const { addFollower, removeFollower } = require("./lib/addFollower")
+const { wrapInOrderedCollection } = require('./lib/wrappers');
+const { addresseesToString } = require("./lib/sendLatestMessages")
 const { lookupAccountByURI, removeAccount, updateAccount, findInbox } = require("./lib/addAccount")
-const { addLike, removeLike } = require("./lib/addLike")
-const { addAnnounce, removeAnnounce } = require("./lib/addAnnounce")
 const { startAPLog, endAPLog } = require("./lib/aplog");
-const { addMessage, removeMessage, updateMessage } = require('./lib/addMessage');
 const { addActivity } = require("./lib/addActivity")
 const { verifySign, makeDigest } = require("./lib/verifySign");
 const { Message, Account, Activity, Addressee } = require('./models/db');
@@ -25,6 +21,7 @@ const { signAndSend } = require('./lib/signAndSend');
 /* BODY PARSER */
 var bodyParser = require('body-parser');
 const { flatMapAddressees } = require('./utils/flatmapaddressees');
+const { parseMessage } = require('./lib/addMessage');
 router.use(bodyParser.json({type: 'application/activity+json'})); // support json encoded bodies
 router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
@@ -52,27 +49,30 @@ router.get('/:username/followers', async function (req, res) {
     const page = req.query.page ? req.query.page : 0;
 
     // Check user
-    const uri = await Account.query().where("handle", "=", username+"@"+domain).first()
-    .then((account) => {
-        return account.uri;
+    await Account.query().where("handle", "=", username+"@"+domain).first()
+    .then(async(account) => {
+        if(account){
+            const uri = account.uri;
+            // Load items and wrap
+            await loadFollowersByUri(uri, page)
+            .then(async (followersCollection) => {
+                await endAPLog(aplog, followersCollection)
+                res.json(followersCollection);
+            })
+            .catch(async(e) => {
+                console.log(e)
+                await endAPLog(aplog, e, 500)
+                res.sendStatus(500);
+            });
+        }else{
+            throw Error("Username not found")
+        }
     })
     .catch(async(e) => {
         console.error(e)
         await endAPLog(aplog, "Username not found", 404)
         return res.sendStatus(404);
     })
-
-    // Load items and wrap
-    await loadFollowersByUri(uri, page)
-    .then(async (followersCollection) => {
-        await endAPLog(aplog, followersCollection)
-        res.json(followersCollection);
-    })
-    .catch(async(e) => {
-        console.log(e)
-        await endAPLog(aplog, e, 500)
-        res.sendStatus(500);
-    });    
 });
 
 router.get('/:username/following', async function (req, res) {
@@ -138,6 +138,11 @@ router.get(["/:username/outbox"], async(req, res) => {
                 to = flatMapAddressees(a.message.addressees_raw, 'to')
                 cc = flatMapAddressees(a.message.addressees_raw, 'cc')
             }
+
+            var object = null;
+            if(a.message && a.message.uri){
+                object = a.message.uri
+            }
             
             return {
                 id: a.id,
@@ -145,7 +150,8 @@ router.get(["/:username/outbox"], async(req, res) => {
                 published: a.published,
                 to,
                 cc,
-                actor: user_uri
+                actor: user_uri,
+                object
             };
         })
         return all;
@@ -182,13 +188,17 @@ router.get(["/:username/collections/featured"], async(req, res) => {
         .catch((e) => { res.sendStatus(500)})
     
     // Load items
-    const messages = await Message.query().where("attributedTo", user_uri).andWhere("pinned", "=", 1)
+    const messages = await Message.query()
+        .where("attributedTo", user_uri)
+        .andWhere("pinned", "=", 1)
         .withGraphFetched("[addressees]")
     .then(async(messages) => {
         var output = new Array();
         for(let message of messages){
             const { to, cc} = addresseesToString(message.addressees)
-            output.push(await makeMessage(message.type, username, domain, message.guid, { published: message.publishedAt, content: message.content, to, cc }));
+            const uri_parts = message.uri.split("/")
+            const guid = uri_parts[(uri_parts.length-1)]
+            output.push(await makeMessage(message.type, username, domain, guid, { published: message.publishedAt, content: message.content, to, cc }));
         }
         return output;
     })
@@ -430,28 +440,33 @@ router.post('/:username/outbox', async function (req, res) {
         //console.log("R", recipient_uri)
         await findInbox(recipient_uri)
         .then(async(inbox) => {
-            //console.log("FOUDN INBOX", inbox)
-            let recipient_url = new URL(recipient_uri);
-            let targetDomain = recipient_url.hostname;
-            await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
-                .then((data) => {
-                    console.log(clc.green("SUCCESS:"), "Sent to", recipient_uri, ":", data)
-                    sent_log.logs.push({
-                        user: recipient_uri,
-                        status: "ok"
+            if(inbox){
+                //console.log("FOUDN INBOX", inbox)
+                let recipient_url = new URL(recipient_uri);
+                let targetDomain = recipient_url.hostname;
+                await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
+                    .then((data) => {
+                        console.log(clc.green("SUCCESS:"), "Sent to", recipient_uri, ":", data)
+                        sent_log.logs.push({
+                            user: recipient_uri,
+                            status: "ok"
+                        })
                     })
-                })
-                .catch((err) => {
-                    console.error(err)
-                    sent_log.logs.push({
-                        user: recipient_uri,
-                        status: err
+                    .catch((err) => {
+                        console.error(err)
+                        sent_log.logs.push({
+                            user: recipient_uri,
+                            status: err
+                        })
+                        sent_log.err++;
                     })
-                    sent_log.err++;
-                })
+            }else{
+                console.error("Could not findInbox for "+recipient_uri)
+            }
+            
         })
         .catch((e) => {
-            console.error("Could not findInbox for "+recipient_uri, e)
+            console.log("ERROR finding inbox for "+recipient_uri, e)
             sent_log.logs.push({
                 user: recipient_uri,
                 status: e
