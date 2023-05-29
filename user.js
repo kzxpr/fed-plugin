@@ -416,7 +416,7 @@ router.post('/:username/outbox', async function (req, res) {
     const { to, cc, actor, type, id } = req.body;
     const { authorization, host } = req.headers;
 
-    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor, req.body)
+    console.log(clc.blue("POST /outbox"), "("+type+") from "+actor)
 
     /* AUTHORIZATION */
     if(host!=domain){
@@ -451,7 +451,7 @@ router.post('/:username/outbox', async function (req, res) {
     /* ADD ACTIVITY TO DATABASE */
     let statuscode;
     try {
-        console.log("handleActivity", type, wrapped)
+        //console.log("handleActivity", type, wrapped)
         await handleActivity(type, wrapped)
         //console.log("DOWN HERE!", id)
         // Activity was created - Set statuscode to 201
