@@ -12,8 +12,8 @@ function displayFollowInfo(handle = "", msg = ""){
     html += "<form action='/interact/' method='get'>"
     html += "<input type='hidden' name='object' value='"+handle+"'>"
     html += "<input type='hidden' name='type' value='follow'>"
-    html += "<input type='text' name='actor'><br>";
-    html += "<input type='checkbox' name='remember' value='true'> Remember my instance (this sets a necessary cookie, obviously!)<br>"
+    html += "<input type='text' name='actor' placeholder='@username@mstdn.dk'><br>";
+    html += "<input type='checkbox' name='remember' value='true'> Remember my instance (this sets a cookie, obviously!)<br>"
     html += "<input type='submit' value='Follow!'>"
     html += "</form>"
     html += "<br>"
