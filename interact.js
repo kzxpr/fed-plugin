@@ -1,5 +1,10 @@
 const { getWebfinger, readLinkFromWebfinger } = require('./lib/ap-feed');
 
+const cookieOptions = {
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365), // Expires in 7 days
+    httpOnly: true,
+};
+
 function displayFollowInfo(handle = "", msg = ""){
     var html = "<div style='margin: auto; width: 100%; max-width: 700px;'>"
     html += "<h1>FediFollow</h1>";
@@ -104,7 +109,7 @@ async function interact(req, res, next){
                 const subscribe = await findSubscribeInWebfinger(webfinger)
                 if(subscribe.template){
                     if(remember){
-                        res.cookie("actor", actor)
+                        res.cookie("actor", actor, cookieOptions)
                     }
                     redirect = subscribe.template.replace("{uri}", object)
                 }else{
