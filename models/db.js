@@ -20,6 +20,9 @@ class Activity extends Model {
 		return {
 			filtered(builder) {
 				builder.whereIn('type', ["Create", "Announce"]);
+			},
+			orderByNewest(builder){
+				builder.orderBy("published", "asc")
 			}
 		}
 	}

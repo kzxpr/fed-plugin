@@ -1,12 +1,13 @@
-const express = require('express');
 const { getWebfinger, readLinkFromWebfinger } = require('./lib/ap-feed');
-const router = express.Router();
 
-var cookieParser = require('cookie-parser');
-router.use(cookieParser());
+const cookieOptions = {
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365), // Expires in 7 days
+    httpOnly: true,
+};
 
 function displayFollowInfo(handle = "", msg = ""){
-    var html = "<h1>FediFollow</h1>";
+    var html = "<div style='margin: auto; width: 100%; max-width: 700px;'>"
+    html += "<h1>FediFollow</h1>";
     if(msg){
         html += "<b>ERROR</b>: "+msg+"<br>"
     }
@@ -16,8 +17,8 @@ function displayFollowInfo(handle = "", msg = ""){
     html += "<form action='/interact/' method='get'>"
     html += "<input type='hidden' name='object' value='"+handle+"'>"
     html += "<input type='hidden' name='type' value='follow'>"
-    html += "<input type='text' name='actor'><br>";
-    html += "<input type='checkbox' name='remember' value='true'> Remember my instance (this sets a necessary cookie, obviously!)<br>"
+    html += "<input type='text' name='actor' placeholder='@username@mstdn.dk'><br>";
+    html += "<input type='checkbox' name='remember' value='true'> Remember my instance (this sets a cookie, obviously!)<br>"
     html += "<input type='submit' value='Follow!'>"
     html += "</form>"
     html += "<br>"
@@ -30,7 +31,7 @@ function displayFollowInfo(handle = "", msg = ""){
         html += "<input type='button' value='COPY'>"
         html += "<br>"
     }
-    html += "<br><button>Close</button>"
+    html += "</div>"
     return html;
 }
 
@@ -85,14 +86,15 @@ async function validateHandle(handle){
     
 }
 
-router.get("/", async(req, res) => {
+//router.get("/", async(req, res) => {
+async function interact(req, res, next){
     var output;
     var redirect = "";
     try{
         var { type, object, actor, remember } = req.query;
 
         // If no actor is set, get from cookie if it exists
-        if(!actor && req.cookies.actor){
+        if(!actor && req.cookies && req.cookies.actor){
             actor = req.cookies.actor
         }
         
@@ -107,7 +109,7 @@ router.get("/", async(req, res) => {
                 const subscribe = await findSubscribeInWebfinger(webfinger)
                 if(subscribe.template){
                     if(remember){
-                        res.cookie("actor", actor)
+                        res.cookie("actor", actor, cookieOptions)
                     }
                     redirect = subscribe.template.replace("{uri}", object)
                 }else{
@@ -119,20 +121,24 @@ router.get("/", async(req, res) => {
         }
 
         if(redirect!=""){
-            res.redirect(redirect)
+            res.locals.redirect = redirect;
+            //res.redirect(redirect)
         }else{
-            res.send(output)
+            //res.send(output)
+            res.locals.output = output;
         }
     }catch(e){
         console.log("ERROR inside /interact", e)
         output = displayFollowInfo(object, e)
-        res.send(output)
+        //res.send(output)
+        res.locals.output = output;
     }
-})
+    next()
+}
 
 
-router.get("*", (req, res) => {
+/*router.get("*", (req, res) => {
     res.sendStatus(404)
-})
+})*/
 
-module.exports = router;
+module.exports = { interact, displayFollowInfo }

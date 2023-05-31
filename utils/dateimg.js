@@ -23,7 +23,7 @@ router.get("/:input", (req, res) => {
     const canvas = createCanvas(200, 200)
     const ctx = canvas.getContext('2d')
 
-    ctx.fillStyle = "rgb(207, 209, 196)";
+    ctx.fillStyle = "#ba9619"; //rgb(207, 209, 196)";
     ctx.rect(0, 0, 200, 200)
     ctx.fill();
 

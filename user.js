@@ -372,6 +372,47 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
     }    
 });
 
+async function sendStuff(recipient_uri, body, account_uri, apikey){
+    return new Promise(async(resolve, reject) => {
+        //console.log("TRIGGER sendStuff", body)
+        var sent_log = new Array();
+        await findInbox(recipient_uri)
+        .then(async(inbox) => {
+            if(inbox){
+                //console.log("FOUDN INBOX", inbox)
+                let recipient_url = new URL(recipient_uri);
+                let targetDomain = recipient_url.hostname;
+                await signAndSend(body, account_uri, targetDomain, inbox, apikey)
+                    .then((data) => {
+                        console.log(clc.green("SUCCESS:"), "Sent to", recipient_uri, ":", data)
+                        resolve({
+                            user: recipient_uri,
+                            status: "ok"
+                        })
+                    })
+                    .catch((err) => {
+                        console.error(err)
+                        reject({
+                            user: recipient_uri,
+                            status: err
+                        })
+                    })
+            }else{
+                console.error("Could not findInbox for "+recipient_uri)
+                reject("Could not findInbox for "+recipient_uri)
+            }
+            
+        })
+        .catch((e) => {
+            console.log("ERROR finding inbox for "+recipient_uri, e)
+            reject({
+                user: recipient_uri,
+                status: e
+            })
+        })
+    })
+}
+
 /**
  * This requires a FINISHED Activity object!
  */
@@ -413,23 +454,24 @@ router.post('/:username/outbox', async function (req, res) {
 
     /* Resolve all recipients */
     const recipients = await loadRecipientsByList(recipient_list, actor)
-
+    
     /* ADD ACTIVITY TO DATABASE */
     let statuscode;
     try {
+        //console.log("handleActivity", type, wrapped)
         await handleActivity(type, wrapped)
         //console.log("DOWN HERE!", id)
         // Activity was created - Set statuscode to 201
         statuscode = 201;
         res.setHeader("Location", id)
     } catch(e) {
-        console.log(e)
+        console.log("SOME ERROR", e)
         statuscode = 500;
         await endAPLog(aplog, "unknown error", statuscode)
         res.sendStatus(statuscode);
         return;
     }
-    
+
     //console.log("READY TO SEND...", recipients)
     /* SEND IT! */
     var sent_log = {
@@ -437,6 +479,7 @@ router.post('/:username/outbox', async function (req, res) {
         logs: []
     };
 
+    var sends = new Array();
     for(let recipient of recipients){
         var recipient_uri;
         if(typeof recipient === "string"){
@@ -444,44 +487,23 @@ router.post('/:username/outbox', async function (req, res) {
         }else{
             recipient_uri = recipient.id;
         }
+
+        await sendStuff(recipient_uri, req.body, account_uri, apikey)
         //console.log("R", recipient_uri)
-        await findInbox(recipient_uri)
-        .then(async(inbox) => {
-            if(inbox){
-                //console.log("FOUDN INBOX", inbox)
-                let recipient_url = new URL(recipient_uri);
-                let targetDomain = recipient_url.hostname;
-                await signAndSend(req.body, account_uri, targetDomain, inbox, apikey)
-                    .then((data) => {
-                        console.log(clc.green("SUCCESS:"), "Sent to", recipient_uri, ":", data)
-                        sent_log.logs.push({
-                            user: recipient_uri,
-                            status: "ok"
-                        })
-                    })
-                    .catch((err) => {
-                        console.error(err)
-                        sent_log.logs.push({
-                            user: recipient_uri,
-                            status: err
-                        })
-                        sent_log.err++;
-                    })
-            }else{
-                console.error("Could not findInbox for "+recipient_uri)
-            }
-            
-        })
-        .catch((e) => {
-            console.log("ERROR finding inbox for "+recipient_uri, e)
-            sent_log.logs.push({
-                user: recipient_uri,
-                status: e
-            })
-            sent_log.err++;
-        })
     }
 
+    //console.log("SENDS", sends)
+
+    
+    /*await Promise.all(sends)
+    .then(async(ok) => {
+        console.log("OK", ok)
+    })
+    .catch((e) => {
+        console.log("ERR?", e)
+    })*/
+    
+    /* FINISH IT AND SEND RESPONSE */
     if(statuscode != 201){
         await endAPLog(aplog, "Unhandled error", statuscode)
         res.sendStatus(statuscode);
