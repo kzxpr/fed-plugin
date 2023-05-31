@@ -266,7 +266,14 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
                 );
 
                 var obj = {
-                    "@context": ["https://www.w3.org/ns/activitystreams"],
+                    "@context": [
+                        "https://www.w3.org/ns/activitystreams",
+                        {
+                            "ostatus": "http://ostatus.org#",
+                            "atomUri": "ostatus:atomUri",
+                            "conversation": "ostatus:conversation",
+                            "toot": "http://joinmastodon.org/ns#",
+                        }],
                     ...msg
                 }
                 
