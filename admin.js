@@ -236,6 +236,7 @@ async function updateConfig(key, value){
             .where("key", "=", key)
         return "Updated "+key+" to '"+value+"'";
     }catch(e){
+        console.log("ERROR in updateConfig", e)
         return "ERROR updating "+key+" to '"+value+"'"
     }
 }
