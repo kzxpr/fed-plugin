@@ -136,6 +136,33 @@ Requires clc
 
 ## To make a "Follow" button
 
+Add cookieParser to app:
+
+    const cookieParser = require('cookie-parser');
+    app.use(cookieParser());
+
+    const cookieOptions = {
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+        httpOnly: true
+    }
+
+Then include middleware:
+
+    const { interact } = require("./server/fed-plugin/interact")
+    app.use("/interact", interact)
+
+And make the endpoint:
+
+    app.get("/interact", (req, res) => {
+        if(res.locals.redirect){
+            res.redirect(res.locals.redirect)
+        }else{
+            res.send(res.locals.output)
+        }
+    })
+
+Then in HTML:
+
     <div style="border: 1px solid #fff; display: flex; align-items: center">
 		<img src="/public/icons/activitypub.png" height="32">
 		<a href="/interact?type=follow&object=@{{account.handle}}" title="ActivityPub handle: @{{account.handle}}">Follow</a>
