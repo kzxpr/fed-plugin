@@ -1,6 +1,8 @@
 const express = require('express'),
     router = express.Router();
 
+const DOMAIN = process.env.DOMAIN;
+
 /* CORS */
 const cors = require('cors')
 
@@ -53,6 +55,7 @@ const clc = require('cli-color');
 const { handleOutbox } = require('./lib/checkFeed');
 const { dynamicDate, skipHTMLTags } = require('./utils/funcs');
 const { Config } = require('../../models/posts');
+const { default: axios } = require('axios');
 
 var CronJob = require('cron').CronJob;
 
@@ -252,15 +255,19 @@ router.all("/config", async(req, res) => {
         if(msg){
             body += "<div style='border: 1px solid #000; margin: 5px; padding: 5px;'>";
             body += msg;
-            body += "<br>"
-            body += "Remember to <a href='/reloadconfig'>reload config</a> when you're done"
+            await axios.get("https://" + DOMAIN + "/reloadconfig")
             body += "</div>"
         }
         for(let conf of config){
             body += "<b>"+conf.key+"</b><br>";
             body += "<form action='/ap/config' method='post'>";
             body += "<input type='hidden' value='"+conf.key+"' name='key'>";
-            body += "<input type='text' value='"+conf.value+"' name='value'>";
+            if(conf.key=="skin"){
+                body += "<textarea cols='80' rows='25' name='value'>"+conf.value+"</textarea>";
+            }else{
+                body += "<input type='text' value='"+conf.value+"' name='value'>";
+            }
+            
             body += "<input type='submit' value='Update'>";
             body += "</form>";
         }
