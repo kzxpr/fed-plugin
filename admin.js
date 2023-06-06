@@ -52,6 +52,7 @@ const { pageLogs, logItem } = require("./pages");
 const clc = require('cli-color');
 const { handleOutbox } = require('./lib/checkFeed');
 const { dynamicDate, skipHTMLTags } = require('./utils/funcs');
+const { Config } = require('../../models/posts');
 
 var CronJob = require('cron').CronJob;
 
@@ -223,6 +224,52 @@ router.get("/logs/:logid", async(req, res) => {
     .catch((e) => {
         res.sendStatus(404)
     })
+})
+
+async function updateConfig(key, value){
+    try{
+        await Config.query()
+            .update({ "value": value })
+            .where("key", "=", key)
+        return "Updated "+key+" to '"+value+"'";
+    }catch(e){
+        return "ERROR updating "+key+" to '"+value+"'"
+    }
+}
+
+router.all("/config", async(req, res) => {
+    try{
+        var msg;
+        if(req.body){
+            // this is probably a POST
+            const { key, value } = req.body;
+            if(key && value){
+                msg = await updateConfig(key, value)
+            }
+        }
+        const config = await Config.query();
+        var body = "<h1>So you want to configure your site??</h1>";
+        if(msg){
+            body += "<div style='border: 1px solid #000; margin: 5px; padding: 5px;'>";
+            body += msg;
+            body += "<br>"
+            body += "Remember to <a href='/reloadconfig'>reload config</a> when you're done"
+            body += "</div>"
+        }
+        for(let conf of config){
+            body += "<b>"+conf.key+"</b><br>";
+            body += "<form action='/ap/config' method='post'>";
+            body += "<input type='hidden' value='"+conf.key+"' name='key'>";
+            body += "<input type='text' value='"+conf.value+"' name='value'>";
+            body += "<input type='submit' value='Update'>";
+            body += "</form>";
+        }
+        res.send(body)
+    }catch(e){
+        console.log("ERROR in /ap/config", e)
+        res.sendStatus(500)
+    }
+    
 })
 
 router.get("/", (req, res) => {
