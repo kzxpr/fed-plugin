@@ -98,13 +98,13 @@ function isJSON(str) {
     }
 }
 
-function dynamicDate(date){
+function dynamicDate(date, breakline = true){
 	const dd = new Date(date);
 	const now = new Date();
 	const diff = now.getTime() - dd.getTime();
 	const daynames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 	const datestr = daynames[dd.getDay()]+" "+dd.getDate()+"/"+(dd.getMonth()+1)+"-"+dd.getFullYear();
-	const timestr = dd.getHours()+":"+dd.getMinutes();
+	const timestr = dd.getHours()+":"+fillWithZero(dd.getMinutes(), 2);
 	if(diff < (60 * 1000)){ // less than 1 minutes
 		return "Just now"
 	}else if(diff < (60 * 60 * 1000)){ // less than 59 minutes
@@ -114,7 +114,11 @@ function dynamicDate(date){
 	}else if(diff < (7 * 24 * 60 * 60 * 1000)){ // less than 7 days
 		return Math.floor(diff/(60000*60*24))+" days ago"
 	}else{
-		return datestr+"<br>"+timestr;
+        if(breakline){
+            return datestr+"<br>"+timestr;
+        }else{
+            return datestr+" "+timestr;
+        }
 	}
 }
 
@@ -127,4 +131,24 @@ function prettyDatetime(datetime) {
 	}
 }
 
-module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON, dynamicDate, prettyDatetime }
+function skipHTMLTags(text) {
+    var result = '';
+    var tagOpen = false;
+  
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] === '<') {
+        tagOpen = true;
+      } else if (text[i] === '>') {
+        tagOpen = false;
+        continue;
+      }
+  
+      if (!tagOpen) {
+        result += text[i];
+      }
+    }
+  
+    return result;
+}  
+
+module.exports = { sum, neq, eq, prettydatetime, gt, lt, count, fillWithZero, prettyJSON, notnull, notempty, parseJSON, setVar, substr, onlyUnique, date2mysql, isJSON, dynamicDate, prettyDatetime, skipHTMLTags }

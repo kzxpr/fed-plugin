@@ -14,7 +14,7 @@ Add to existing project
 
 ## Some dependencies
 
-    npm install cli-color node-emoji blurhash canvas luxon cookie-parser --save
+    npm install cli-color node-emoji blurhash canvas luxon cookie-parser feather-icons --save
 
 ## Nginx
 
