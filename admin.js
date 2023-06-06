@@ -246,7 +246,7 @@ router.all("/config", async(req, res) => {
         if(req.body){
             // this is probably a POST
             const { key, value } = req.body;
-            if(key && value){
+            if(key){
                 msg = await updateConfig(key, value)
             }
         }
