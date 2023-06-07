@@ -59,13 +59,13 @@ var housekeeping = new CronJob("0 0 19 * * *", cleanUpLogs)
 housekeeping.start()
 
 router.get("/cleanup", async(req, res) => {
-    await cleanUpLogs()
-    .then((d) => {
+    try{
+        await cleanUpLogs()
         res.send("ok")
-    })
-    .catch((e) => {
+    }catch(e){
+        console.log("ERROR in /cleanup", e)
         res.send(e)
-    })
+    }
 })
 
 async function cleanUpLogs(){
