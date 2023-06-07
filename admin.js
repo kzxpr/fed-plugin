@@ -1,8 +1,6 @@
 const express = require('express'),
     router = express.Router();
 
-const DOMAIN = process.env.DOMAIN;
-
 /* CORS */
 const cors = require('cors')
 
@@ -54,8 +52,6 @@ const { pageLogs, logItem } = require("./pages");
 const clc = require('cli-color');
 const { handleOutbox } = require('./lib/checkFeed');
 const { dynamicDate, skipHTMLTags } = require('./utils/funcs');
-const { Config } = require('../../models/posts');
-const { default: axios } = require('axios');
 
 var CronJob = require('cron').CronJob;
 
@@ -229,63 +225,8 @@ router.get("/logs/:logid", async(req, res) => {
     })
 })
 
-async function updateConfig(key, value){
-    try{
-        await Config.query()
-            .update({ "value": value })
-            .where("key", "=", key)
-        return "Updated "+key+" to '"+value+"'";
-    }catch(e){
-        console.log("ERROR in updateConfig", e)
-        return "ERROR updating "+key+" to '"+value+"'"
-    }
-}
-
-router.all("/config", async(req, res) => {
-    try{
-        var msg;
-        if(req.body){
-            // this is probably a POST
-            const { key, value } = req.body;
-            if(key){
-                msg = await updateConfig(key, value)
-            }
-        }
-        const config = await Config.query();
-        var body = "<h1>So you want to configure your site??</h1>";
-        if(msg){
-            body += "<div style='border: 1px solid #000; margin: 5px; padding: 5px;'>";
-            body += msg;
-            await axios.get("https://" + DOMAIN + "/reloadconfig")
-            body += "</div>"
-        }
-        for(let conf of config){
-            body += "<b>"+conf.key+"</b><br>";
-            body += "<form action='/ap/config' method='post'>";
-            body += "<input type='hidden' value='"+conf.key+"' name='key'>";
-            if(conf.key=="skin"){
-                body += "<textarea cols='80' rows='25' name='value'>"+conf.value+"</textarea>";
-            }else{
-                body += "<input type='text' value='"+conf.value+"' name='value'>";
-            }
-            
-            body += "<input type='submit' value='Update'>";
-            body += "</form>";
-        }
-        res.send(body)
-    }catch(e){
-        console.log("ERROR in /ap/config", e)
-        res.sendStatus(500)
-    }
-    
-})
-
 router.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "admin.html"))
-})
-
-router.get("*", (req, res) => {
-    res.sendStatus(404)
 })
 
 module.exports = router;
