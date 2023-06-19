@@ -22,7 +22,7 @@ class Activity extends Model {
 				builder.whereIn('type', ["Create", "Announce"]);
 			},
 			orderByNewest(builder){
-				builder.orderBy("published", "asc")
+				builder.orderBy("published", "desc")
 			}
 		}
 	}
