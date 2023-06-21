@@ -224,3 +224,21 @@ Where "3000" is the port!
 I might need to look into RabbitMQ:
 
 https://www.rabbitmq.com/tutorials/tutorial-one-javascript.html
+
+
+
+# Some naming conventions
+
+* create = entire process, e.g. parse content and insert
+
+* 
+
+## Insert, Update or xx
+
+* insert
+
+
+* get (from DB)
+* 
+
+* obtain
