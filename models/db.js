@@ -176,6 +176,12 @@ class AccountLink extends Model {
 	}
 }
 
+class AccountTag extends Model {
+	static get tableName() {
+		return 'apaccounts_tags';
+	}
+}
+
 class Account extends Model {
 	static get tableName() {
 		return 'apaccounts';
@@ -213,6 +219,14 @@ class Account extends Model {
 				join: {
 					from: 'apaccounts.uri',
 					to: 'apaccounts_link.user_uri'
+				}
+			},
+			tags: {
+				relation: Model.HasManyRelation,
+				modelClass: AccountTag,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apaccounts_tags.user_uri'
 				}
 			},
 			messages: {
@@ -337,4 +351,4 @@ class Request extends Model {
 	}
 }
 
-module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink, TagChannel }
+module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink, AccountTag, TagChannel }
