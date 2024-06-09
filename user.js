@@ -33,6 +33,7 @@ router.get('/:username', async function (req, res) {
     await loadActorByUsername(name, domain)
     .then(async(data) => {
         await endAPLog(aplog, data);
+        res.contentType("application/activity+json")
         res.json(data);
     })
     .catch(async(err) => {

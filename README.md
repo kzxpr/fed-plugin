@@ -229,16 +229,43 @@ https://www.rabbitmq.com/tutorials/tutorial-one-javascript.html
 
 # Some naming conventions
 
-* create = entire process, e.g. parse content and insert
+## Simple database operations
 
-* 
+* **get**(uri) = gets object by id from DB, otherwise => **err**
+* **insert**(obj) = inserts object. If CONFLICT => **err**
+* **modify**(uri, obj) = modifies record by 'uri' to obj. If NONE => **err**
+* **upsert**(uri, obj) = if exists, do **modify**, otherwise **insert**
+* **remove**(uri) = removes uri from DB
+* **purge**(uri) = deletes uri + related content
 
-## Insert, Update or xx
+## Retrieving data
 
-* insert
+* **check**(uri) = checks if an uri exists, otherwise **false**
+* **get**(uri) = gets an object identified by id from DB, otherwise => **err**
+* **fetch**(uri) = fetches an uri by HTTP. If NOT FOUND => **err**
+* **retrieve**(uri) = **get**, otherwise **fetch**, otherwise **err**
+* **obtain**(uri) = **get**, otherwise **fetch** and **insert**, otherwise **err**
+* **lookup**(obj, key) = retrieves value by key from obj, otherwise **err**
+* **search**(value) = gets several objects by some criteria
 
+## Complex
 
-* get (from DB)
-* 
+* **create**(obj) = parse obj, then **insert**
+* **update**(uri) = **fetch** from URI, then **upsert** in DB
+* **handle**(message_uri, array) = (e.g. *handleAttachments* in addMessage.js) - would this actually imply an event??? (*handleOutbox* in checkFeed.js?)
+* **parse**(obj) = transform object into new convention
+* **find**() = perhaps like *checkOrphans* in checkFeed.js???
 
-* obtain
+* stuff with loops/crawls???
+
+* REMEMBER: add with extra adds inside, e.g. *addTag* in addTag.js
+
+## SSH Tunnel
+
+To open it:
+
+    ssh -R remoteport:127.0.0.1:localport user@ip.ip.ip.ip
+
+Example:
+
+    ssh -R 5011:127.0.0.1:3001 root@ip.ip.ip.ip
