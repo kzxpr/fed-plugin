@@ -58,6 +58,7 @@ router.get('/:username/followers', async function (req, res) {
             await loadFollowersByUri(uri, page)
             .then(async (followersCollection) => {
                 await endAPLog(aplog, followersCollection)
+                res.contentType("application/activity+json")
                 res.json(followersCollection);
             })
             .catch(async(e) => {
@@ -97,6 +98,7 @@ router.get('/:username/following', async function (req, res) {
     await loadFollowingByUri(uri, page)
     .then(async (followersCollection) => {
         await endAPLog(aplog, followersCollection)
+        res.contentType("application/activity+json")
         res.json(followersCollection);
     })
     .catch(async(e) => {
@@ -172,6 +174,7 @@ router.get(["/:username/outbox"], async(req, res) => {
     const id = "https://"+domain+"/u/"+username+"/outbox";
     const data = wrapInOrderedCollection(id, activities);
     await endAPLog(aplog, data)
+    res.contentType("application/activity+json")
     res.json(data)
 })
 
@@ -215,6 +218,7 @@ router.get(["/:username/collections/featured"], async(req, res) => {
         "orderedItems": messages
     }
     await endAPLog(aplog, data)
+    res.contentType("application/activity+json")
     res.json(data)    
 })
 
@@ -281,6 +285,7 @@ router.get("/:username/statuses/:messageid", async (req, res) => {
                 /* IT SEEMS LIKE THIS SHOULD *NOT* BE WRAPPED */
 
                 await endAPLog(aplog, obj)
+                res.contentType("application/activity+json")
                 res.json(obj)
             }else{
                 await endAPLog(aplog, "The message you requested doesn't exist", 404)
@@ -361,6 +366,7 @@ router.post(['/inbox', '/:username/inbox'], async function (req, res) {
             return;
         }else{
             await endAPLog(aplog, msg)
+            res.contentType("application/activity+json")
             res.send(data)
             return;
         }
@@ -511,6 +517,7 @@ router.post('/:username/outbox', async function (req, res) {
         return;
     }else{
         await endAPLog(aplog, sent_log)
+        res.contentType("application/activity+json")
         res.send(sent_log)
     }
 });

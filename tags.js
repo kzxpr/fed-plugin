@@ -15,6 +15,7 @@ router.get("/:tagname", async(req, res) => {
             return v.message_uri;
         })
         const p = wrapInOrderedCollection("https://"+domain+"/tags/"+tagname, items)
+        res.contentType("application/activity+json")
         res.send(p)
     })
     .catch((e) => {
