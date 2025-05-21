@@ -1,5 +1,11 @@
 # FED plugin
 
+This is a **prototype** and should only be used for experimental purposes
+
+No gurantees - except that it wont be backwards compatible until version 1.0.0.
+
+Eventually, this will become a npm module, but meanwhile it's used as a git submodule.
+
 ## To add this to your project
 
 Add to existing project
@@ -8,7 +14,7 @@ Add to existing project
 
 ## Some dependencies
 
-    npm install cli-color node-emoji blurhash canvas luxon --save
+    npm install cli-color node-emoji blurhash canvas luxon cookie-parser feather-icons --save
 
 ## Nginx
 
@@ -69,12 +75,18 @@ Import routes:
     const ap_webfinger = require("./server/fed-plugin/webfinger")
     const ap_user = require("./server/fed-plugin/user")
     const ap_admin_routes = require("./server/fed-plugin/admin")
+    const ap_interact = require("./server/fed-plugin/interact")
+    const ap_tags = require("./server/fed-plugin/tags")
+    const imgpicker = require("./server/fed-plugin/imgpicker")
 
     app.use("/.well-known/webfinger/", cors(), ap_webfinger)
     app.use("/u", cors(), ap_user)
-    app.use("/ap/admin", ap_admin_routes);
+    app.use("/ap", ap_admin_routes);
+    app.use("/interact", ap_interact)
+    app.use("/tags", ap_tags)
+    app.use("/imgpicker", imgpicker)
 
-### Example of trigger - auto accept follows
+### TRIGGER: Auto accept follows
 
 Requires clc, then looks up api_key in DB
 
@@ -121,6 +133,40 @@ Requires clc
 ### How to include models
 
     const { Tag, Account, Message } = require("./server/fed-plugin/models/db")
+
+## To make a "Follow" button
+
+Add cookieParser to app:
+
+    const cookieParser = require('cookie-parser');
+    app.use(cookieParser());
+
+    const cookieOptions = {
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+        httpOnly: true
+    }
+
+Then include middleware:
+
+    const { interact } = require("./server/fed-plugin/interact")
+    app.use("/interact", interact)
+
+And make the endpoint:
+
+    app.get("/interact", (req, res) => {
+        if(res.locals.redirect){
+            res.redirect(res.locals.redirect)
+        }else{
+            res.send(res.locals.output)
+        }
+    })
+
+Then in HTML:
+
+    <div style="border: 1px solid #fff; display: flex; align-items: center">
+		<img src="/public/icons/activitypub.png" height="32">
+		<a href="/interact?type=follow&object=@{{account.handle}}" title="ActivityPub handle: @{{account.handle}}">Follow</a>
+	</div>
 
 ## Important endpoints
 
@@ -178,3 +224,48 @@ Where "3000" is the port!
 I might need to look into RabbitMQ:
 
 https://www.rabbitmq.com/tutorials/tutorial-one-javascript.html
+
+
+
+# Some naming conventions
+
+## Simple database operations
+
+* **get**(uri) = gets object by id from DB, otherwise => **err**
+* **insert**(obj) = inserts object. If CONFLICT => **err**
+* **modify**(uri, obj) = modifies record by 'uri' to obj. If NONE => **err**
+* **upsert**(uri, obj) = if exists, do **modify**, otherwise **insert**
+* **remove**(uri) = removes uri from DB
+* **purge**(uri) = deletes uri + related content
+
+## Retrieving data
+
+* **check**(uri) = checks if an uri exists, otherwise **false**
+* **get**(uri) = gets an object identified by id from DB, otherwise => **err**
+* **fetch**(uri) = fetches an uri by HTTP. If NOT FOUND => **err**
+* **retrieve**(uri) = **get**, otherwise **fetch**, otherwise **err**
+* **obtain**(uri) = **get**, otherwise **fetch** and **insert**, otherwise **err**
+* **lookup**(obj, key) = retrieves value by key from obj, otherwise **err**
+* **search**(value) = gets several objects by some criteria
+
+## Complex
+
+* **create**(obj) = parse obj, then **insert**
+* **update**(uri) = **fetch** from URI, then **upsert** in DB
+* **handle**(message_uri, array) = (e.g. *handleAttachments* in addMessage.js) - would this actually imply an event??? (*handleOutbox* in checkFeed.js?)
+* **parse**(obj) = transform object into new convention
+* **find**() = perhaps like *checkOrphans* in checkFeed.js???
+
+* stuff with loops/crawls???
+
+* REMEMBER: add with extra adds inside, e.g. *addTag* in addTag.js
+
+## SSH Tunnel
+
+To open it:
+
+    ssh -R remoteport:127.0.0.1:localport user@ip.ip.ip.ip
+
+Example:
+
+    ssh -R 5011:127.0.0.1:3001 root@ip.ip.ip.ip

@@ -6,7 +6,7 @@ function encodeStr(rawStr){
         return '&#'+i.codePointAt(0)+';';
     });*/
     const encodedStr = emoji.unemojify(rawStr)
-    const strip_apos = encodedStr.replace(/\'/g, "&quot;");
+    const strip_apos = encodedStr.replace(/\'/g, "&apos;");
     return strip_apos;
 }
 

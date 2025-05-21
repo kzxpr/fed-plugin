@@ -16,6 +16,17 @@ class Activity extends Model {
 		return 'apactivities';
 	}
 
+	static get modifiers() {
+		return {
+			filtered(builder) {
+				builder.whereIn('type', ["Create", "Announce"]);
+			},
+			orderByNewest(builder){
+				builder.orderBy("published", "desc")
+			}
+		}
+	}
+
 	static get relationMappings() {
 		return {
 			message: {
@@ -69,6 +80,25 @@ class Tag extends Model {
 	}
 }
 
+class TagChannel extends Model {
+	static get tableName() {
+		return 'aptags_channels';
+	}
+
+	/*static get relationMappings() {
+		return {
+			messages: {
+				relation: Model.HasManyRelation,
+				modelClass: Message,
+				join: {
+					from: 'aptags.message_uri',
+					to: 'apmessages.uri'
+				}
+			}
+		}
+	}*/
+}
+
 class Like extends Model {
 	static get tableName() {
 		return 'aplikes';
@@ -117,11 +147,38 @@ class Follower extends Model {
 	static get tableName() {
 		return 'apfollowers';
 	}
+
+	static get relationMappings() {
+		return {
+			follow_activity: {
+				relation: Model.HasOneRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apfollowers.follow_activity_uri',
+					to: 'apactivities.uri'
+				}
+			},
+			accept_activity: {
+				relation: Model.HasOneRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apfollowers.accept_activity_uri',
+					to: 'apactivities.uri'
+				}
+			},
+		}
+	}
 }
 
 class AccountLink extends Model {
 	static get tableName() {
 		return 'apaccounts_link';
+	}
+}
+
+class AccountTag extends Model {
+	static get tableName() {
+		return 'apaccounts_tags';
 	}
 }
 
@@ -163,7 +220,31 @@ class Account extends Model {
 					from: 'apaccounts.uri',
 					to: 'apaccounts_link.user_uri'
 				}
-			}
+			},
+			tags: {
+				relation: Model.HasManyRelation,
+				modelClass: AccountTag,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apaccounts_tags.user_uri'
+				}
+			},
+			messages: {
+				relation: Model.HasManyRelation,
+				modelClass: Message,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apmessages.attributedTo'
+				}
+			},
+			activities: {
+				relation: Model.HasManyRelation,
+				modelClass: Activity,
+				join: {
+					from: 'apaccounts.uri',
+					to: 'apactivities.actor'
+				}
+			},
 		}
 	}
 }
@@ -270,4 +351,4 @@ class Request extends Model {
 	}
 }
 
-module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink }
+module.exports = { Tag, Account, Message, Attachment, Like, Announce, Option, Request, Follower, Activity, Vote, Addressee, AccountLink, AccountTag, TagChannel }

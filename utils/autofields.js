@@ -1,3 +1,4 @@
+const { encodeStr } = require("./encodeStr");
 
 function addName(options){
     const { name } = options;
@@ -11,8 +12,8 @@ function addName(options){
 function addContent(options){
     const { content } = options;
 
-    var body = "<tr><td>content</td><td><input type='text' name='content' value='"+content+"'></td></tr>"
-    var hidden = "<input type='hidden' name='content' value='"+content+"'>";
+    var body = "<tr><td>content</td><td><textarea cols='35' rows='6' name='content'>"+content+"</textarea></td></tr>"
+    var hidden = "<input type='hidden' name='content' value='"+encodeStr(content)+"'>";
 
     return { body, hidden }
 }
@@ -20,18 +21,18 @@ function addContent(options){
 function addSummary(options){
     const { summary } = options;
 
-    var body = "<tr><td>summary</td><td><input type='text' name='summary' value='"+summary+"'></td></tr>"
-    var hidden = "<input type='hidden' name='summary' value='"+summary+"'>";
+    var body = "<tr><td>summary</td><td><input type='text' name='summary' value='"+encodeStr(summary)+"'></td></tr>"
+    var hidden = "<input type='hidden' name='summary' value='"+encodeStr(summary)+"'>";
 
     return { body, hidden }
 }
 
 function addAttachments(options){
-    const { mediaType, href, n_attachs } = options;
-    var body = "<tr><td colspan='3'><u>Attachments:</u><td></tr>";
+    const { mediaType, href, n_attachs, blurhash, width, height, attachname } = options;
+    var body = "<tr><td><u>Attachments:</u><td colspan='2'><a href='/imgpicker' target='_new'>Imgpicker</a></tr>";
     body += "<tr><td>number of attachments</td><td><input type='number' name='n_attachs' value='"+n_attachs+"'></td></tr>"
     var hidden = "<input type='hidden' name='n_attachs' value='"+n_attachs+"'>";
-    const attachment_types = new Array("image/png", "image/jpeg", "audio/mpeg")
+    const attachment_types = new Array("image/png", "image/jpeg", "image/gif", "audio/mpeg")
     if(n_attachs>0){
         for(let n = 0; n < n_attachs; n++){
             body += "<tr>"
@@ -45,11 +46,21 @@ function addAttachments(options){
                 }
                 body += ">"+attachment_type+"</option>"
             }
-            body += "</select></td>"
+            body += "</select>";
+            
+            body += "<input type='text' name='attachname' value='"+(attachname && attachname[n] ? attachname[n] : "")+"'>";
+            body += "<input type='hidden' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
+            body += "<input type='hidden' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
+            body += "<input type='hidden' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
+            body += "</td>"
             body += "</tr>"
 
             hidden += "<input type='hidden' name='mediaType' value='"+mediaType[n]+"'>";
             hidden += "<input type='hidden' name='href' value='"+href[n]+"'>";
+            hidden += "<input type='hidden' name='width' value='"+(width && width[n] ? width[n] : "")+"'>";
+            hidden += "<input type='hidden' name='height' value='"+(height && height[n] ? height[n] : "")+"'>";
+            hidden += "<input type='hidden' name='blurhash' value='"+(blurhash && blurhash[n] ? blurhash[n] : "")+"'>";
+            hidden += "<input type='hidden' name='attachname' value='"+(attachname && attachname[n] ? attachname[n] : "")+"'>";
         }
     }
 
@@ -58,7 +69,7 @@ function addAttachments(options){
 
 function addTags(options){
     const { tags, n_tags } = options;
-    var body = "<tr><td colspan='3'><u>Tags:</u><td></tr>";
+    var body = "<tr><td><u>Tags:</u><td colspan='2'>JUST WRITE '#' IN TEXT AND THEY WILL COME DOWN HERE</td></tr>";
     body += "<tr><td>number of tags</td><td><input type='number' name='n_tags' value='"+n_tags+"'></td></tr>"
     var hidden = "<input type='hidden' name='n_tags' value='"+n_tags+"'>";
     if(n_tags>0){
@@ -83,11 +94,15 @@ function header(){
             border-top: 1px solid #ccc;
             vertical-align: top;
         }
+        thead{
+            font-weight: bold;
+        }
     </style>`
     body += "<div style='font-size: 10pt'>"
     body += "LIKE (= favourite): Like > Id > Message as 'id' + author URI in 'to'<br>"
     body += "REPLY: Create > Note > Use 'inReplyTo' + author URI in 'to'<br>"
     body += "FOLLOW: Follow > Id > Account to follow as 'id' and 'to'<br>"
+    body += "UNFOLLOW: Undo > Object > Id as activity_id, type as 'Follow', local Actor as 'actor', Account to unfollow as 'object' and 'to'<br>"
     body += "ANNOUNCE (= boost): Announce > Id > Message as 'id' + original author uri in 'to' + 'public' is on<br>"
     body += "UPDATE PROFILE: Update it in database, then Update > Id > Profile as 'id'<br>"
     body += "UPDATE POST: Update it in database, then Update > Id > Message as 'id'<br>"

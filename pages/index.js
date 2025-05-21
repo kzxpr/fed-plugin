@@ -25,11 +25,11 @@ function pageLogs(logs){
         if(log.body == "{}"){
             body += "<i>empty</i>"
         }else{
-            body += "<a href='/ap/admin/logs/"+log.id+"' title='"+prettyJSON(log.body)+"'>{body}</a>";
+            body += "<a href='/ap/logs/"+log.id+"' title='"+prettyJSON(log.body)+"'>{body}</a>";
         }
         body += `</td><td>`
         if(log.response){
-            body += "<a href='/ap/admin/logs/"+log.id+"' title='"+prettyJSON(log.response)+"'>{response}</a>";
+            body += "<a href='/ap/logs/"+log.id+"' title='"+prettyJSON(log.response)+"'>{response}</a>";
         }else{
             body += "<i>empty</i>"
         }
@@ -40,7 +40,7 @@ function pageLogs(logs){
 }
 
 function logItem(log){
-    return `<a href="/ap/admin/logs">Back</a><br>
+    return `<a href="/ap/logs">Back</a><br>
     <table>
         <thead>
             <tr>
