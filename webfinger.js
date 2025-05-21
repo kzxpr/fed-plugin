@@ -6,6 +6,7 @@ const { loadWebfingerByUsername } = require("./lib/loadWebfingerByUsername")
 const { startAPLog, endAPLog } = require("./lib/aplog")
 
 router.get('/', async function (req, res) {
+    console.log("Hi webfinger")
     const aplog = await startAPLog(req)
     let resource = req.query.resource;
     if (!resource || !resource.includes('acct:')) {

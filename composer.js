@@ -7,6 +7,8 @@ const { signAndSend } = require("./lib/signAndSend")
 const { makeArticle, makeEvent, makeNote, makeQuestion, makeImage, handleAddress } = require("./lib/makeMessage")
 const { findInbox } = require("./lib/addAccount")
 
+const crypto = require('crypto');
+
 const clc = require("cli-color")
 
 const { Account, Message, Follower } = require("./models/db")
